@@ -1,0 +1,7 @@
+.pio
+build/
+compile_commands.json
+.vscode/
+*.bin
+*.elf
+*.map

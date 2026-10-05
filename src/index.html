@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DLMS 2x4 Pro</title>
+  <style>
+    :root {
+      --bg: #000a14;
+      --hdr: #000a14;
+      --panel: #001224;
+      --edit: #362000;
+      --dim: #003050;
+      --line: #00aaff;
+      --cyan: #00ffff;
+      --org: #ffa500;
+      --grn: #00ff55;
+      --red: #ff3333;
+      --yel: #ffff00;
+      --mag: #ff00ff;
+      --blu: #3366ff;
+      --wht: #ffffff;
+      --gry: #7891a0;
+      --font: 'Consolas', 'Courier New', monospace;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--wht);
+      font-family: var(--font);
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      background-color: var(--hdr);
+      border-bottom: 2px solid var(--line);
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+      color: var(--wht);
+      font-weight: bold;
+    }
+
+    .header-status {
+      display: flex;
+      gap: 15px;
+      font-size: 14px;
+    }
+
+    .status-badge {
+      background-color: var(--panel);
+      border: 1px solid var(--line);
+      padding: 4px 10px;
+      border-radius: 4px;
+      color: var(--cyan);
+    }
+
+    .status-badge.connected {
+      border-color: var(--grn);
+      color: var(--grn);
+    }
+
+    .status-badge.disconnected {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      background-color: var(--hdr);
+      border-bottom: 1px solid var(--line);
+    }
+
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      color: var(--gry);
+      font-weight: bold;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab:hover {
+      color: var(--wht);
+    }
+
+    .tab.active {
+      color: var(--org);
+      border-bottom-color: var(--org);
+    }
+
+    /* MAIN CONTENT */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .panel-container {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .panel-container.active {
+      display: flex;
+    }
+
+    /* CARDS */
+    .card {
+      background-color: var(--panel);
+      border: 2px solid var(--line);
+      border-radius: 2px;
+      padding: 15px;
+      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+      position: relative;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 2px solid var(--line);
+      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+      pointer-events: none;
+    }
+
+    .card-title {
+      color: var(--wht);
+      font-size: 18px;
+      font-weight: bold;
+      margin-top: 0;
+      margin-bottom: 15px;
+      padding-bottom: 5px;
+      border-bottom: 2px solid var(--line);
+      text-transform: uppercase;
+      text-align: center;
+      letter-spacing: 2px;
+    }
+
+    /* METERS */
+    .meter-container {
+      display: flex;
+      gap: 15px;
+      justify-content: space-between;
+    }
+
+    .meter-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .meter-bar-container {
+      width: 25px;
+      height: 180px;
+      background-color: var(--bg);
+      border: 2px solid var(--line);
+      border-radius: 0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column-reverse;
+      background-image: repeating-linear-gradient(0deg, transparent, transparent 6px, var(--bg) 6px, var(--bg) 8px);
+      z-index: 1;
+    }
+
+    .meter-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background-color: var(--cyan);
+      transition: height 0.1s ease-out;
+      z-index: -1;
+    }
+
+    .meter-bar.org {
+      background-color: var(--org);
+    }
+
+    .meter-bar.grn {
+      background-color: var(--grn);
+    }
+
+    .meter-peak {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background-color: var(--wht);
+      transition: bottom 0.2s;
+      z-index: 2;
+    }
+
+    .meter-label {
+      font-size: 16px;
+      font-weight: bold;
+      color: var(--cyan);
+    }
+
+    .meter-label.org {
+      color: var(--org);
+    }
+
+    .meter-label.grn {
+      color: var(--grn);
+    }
+
+    /* CONTROLS */
+    .control-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 15px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-group label {
+      font-size: 14px;
+      color: var(--wht);
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    .input-wrapper {
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="number"],
+    select {
+      width: 100%;
+      background-color: var(--bg);
+      border: 2px solid var(--line);
+      color: var(--wht);
+      padding: 8px;
+      border-radius: 0px;
+      font-family: inherit;
+      font-size: 18px;
+      font-weight: bold;
+      clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
+    }
+
+    input[type="number"]:focus,
+    select:focus {
+      border-color: var(--org);
+      outline: none;
+      color: var(--org);
+    }
+
+    .btn-toggle {
+      background-color: var(--dim);
+      border: 2px solid var(--line);
+      color: var(--wht);
+      padding: 8px 15px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: all 0.2s;
+      text-align: center;
+      user-select: none;
+      clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
+      font-size: 16px;
+    }
+
+    .btn-toggle.active.red {
+      background-color: var(--bg);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .btn-toggle.active.grn {
+      background-color: var(--bg);
+      border-color: var(--grn);
+      color: var(--grn);
+    }
+
+    .btn-toggle.active.org {
+      background-color: var(--bg);
+      border-color: var(--org);
+      color: var(--org);
+    }
+
+    .btn {
+      background-color: var(--panel);
+      border: 2px solid var(--cyan);
+      color: var(--wht);
+      padding: 12px 20px;
+      cursor: pointer;
+      font-weight: bold;
+      text-transform: uppercase;
+      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
+      font-size: 18px;
+      min-width: 120px;
+    }
+
+    .btn:hover {
+      background-color: var(--cyan);
+      color: var(--bg);
+    }
+
+    .btn.btn-grn {
+      border-color: var(--grn);
+      color: var(--grn);
+      font-size: 24px;
+      padding: 15px 30px;
+    }
+
+    .btn.btn-grn:hover {
+      background-color: var(--grn);
+      color: var(--bg);
+    }
+
+    .btn.btn-red {
+      border-color: var(--red);
+      color: var(--red);
+      font-size: 24px;
+      padding: 15px 30px;
+    }
+
+    .btn.btn-red:hover {
+      background-color: var(--red);
+      color: var(--bg);
+    }
+
+    /* GRAPHS */
+    .graph-container {
+      width: 100%;
+      height: 200px;
+      background-color: var(--bg);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      position: relative;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* PEQ TABLE */
+    .peq-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .peq-table th {
+      text-align: left;
+      color: var(--cyan);
+      padding: 8px;
+      border-bottom: 1px solid var(--dim);
+    }
+
+    .peq-table td {
+      padding: 8px;
+      border-bottom: 1px solid var(--dim);
+    }
+
+    .peq-table tr:hover {
+      background-color: var(--dim);
+    }
+
+    .flex-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1 id="device-name">DLMS 240 Pro</h1>
+    <div class="header-status">
+      <div class="status-badge" id="ws-status">Connecting...</div>
+      <div class="status-badge" id="fw-version">v2.4.1</div>
+    </div>
+  </div>
+
+  <div class="tabs" id="main-tabs">
+    <div class="tab active" data-target="dashboard">DASHBOARD</div>
+    <div class="tab" data-target="in1">IN 1</div>
+    <div class="tab" data-target="in2">IN 2</div>
+    <div class="tab" data-target="out1">OUT 1</div>
+    <div class="tab" data-target="out2">OUT 2</div>
+    <div class="tab" data-target="out3">OUT 3</div>
+    <div class="tab" data-target="out4">OUT 4</div>
+    <div class="tab" data-target="presets">PRESETS</div>
+  </div>
+
+  <div class="content">
+    <!-- DASHBOARD -->
+    <div id="dashboard" class="panel-container active">
+      <div class="card">
+        <div class="card-title">LEVEL METERS</div>
+        <div class="meter-container" id="meters-view">
+          <!-- Meters generated by JS -->
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">ROUTING MATRIX</div>
+        <div class="control-grid" id="routing-view">
+          <!-- Routing generated by JS -->
+        </div>
+      </div>
+    </div>
+
+    <!-- CHANNEL VIEW (Template for JS) -->
+    <div id="channel-view" class="panel-container">
+      <div class="card">
+        <div class="card-title" id="cv-title">CHANNEL SETUP</div>
+        <div class="control-grid">
+          <div class="control-group">
+            <label>MUTE</label>
+            <div class="btn-toggle red" id="cv-mute" onclick="toggleParam('mute')">OFF</div>
+          </div>
+          <div class="control-group">
+            <label>GAIN (dB)</label>
+            <input type="number" id="cv-gain" step="0.5" min="-80" max="12" onchange="updateParam('gain', this.value)">
+          </div>
+          <div class="control-group" id="cv-phase-group">
+            <label>PHASE</label>
+            <div class="btn-toggle org" id="cv-phase" onclick="toggleParam('invert')">0&deg;</div>
+          </div>
+          <div class="control-group">
+            <label>DELAY (ms)</label>
+            <input type="number" id="cv-delay" step="0.1" min="0" max="150" onchange="updateParam('delay', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- XOVER -->
+      <div class="card" id="cv-xover-card">
+        <div class="card-title">CROSSOVER</div>
+        <div class="graph-container">
+          <canvas id="xover-canvas"></canvas>
+        </div>
+        <div class="control-grid" style="margin-top: 15px;">
+          <div class="control-group">
+            <label>HPF BYPASS</label>
+            <div class="btn-toggle grn" id="cv-hp-on" onclick="toggleXover('hp')">ON</div>
+          </div>
+          <div class="control-group">
+            <label>HPF FREQ (Hz)</label>
+            <input type="number" id="cv-hp-f" step="1" min="20" max="22000"
+              onchange="updateXover('hp', 'f', this.value)">
+          </div>
+          <div class="control-group">
+            <label>HPF TYPE</label>
+            <select id="cv-hp-type" onchange="updateXover('hp', 'type', this.value)">
+              <option value="0">OFF</option>
+              <option value="1">BW12</option>
+              <option value="2">BW18</option>
+              <option value="3">BW24</option>
+              <option value="4">LR12</option>
+              <option value="5">LR24</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label>LPF BYPASS</label>
+            <div class="btn-toggle org" id="cv-lp-on" onclick="toggleXover('lp')">ON</div>
+          </div>
+          <div class="control-group">
+            <label>LPF FREQ (Hz)</label>
+            <input type="number" id="cv-lp-f" step="1" min="20" max="22000"
+              onchange="updateXover('lp', 'f', this.value)">
+          </div>
+          <div class="control-group">
+            <label>LPF TYPE</label>
+            <select id="cv-lp-type" onchange="updateXover('lp', 'type', this.value)">
+              <option value="0">OFF</option>
+              <option value="1">BW12</option>
+              <option value="2">BW18</option>
+              <option value="3">BW24</option>
+              <option value="4">LR12</option>
+              <option value="5">LR24</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- DYNAMICS -->
+      <div class="card">
+        <div class="card-title">LIMITER & GATE</div>
+        <div class="control-grid">
+          <div class="control-group">
+            <label>LIMITER</label>
+            <div class="btn-toggle org" id="cv-lim-on" onclick="toggleLimiter()">OFF</div>
+          </div>
+          <div class="control-group">
+            <label>LIM THRESH (dB)</label>
+            <input type="number" id="cv-lim-thr" step="0.5" min="-40" max="12"
+              onchange="updateLimiter('thr', this.value)">
+          </div>
+          <div class="control-group">
+            <label>LIM ATTACK (ms)</label>
+            <input type="number" id="cv-lim-att" step="1" min="1" max="200"
+              onchange="updateLimiter('attack', this.value)">
+          </div>
+          <div class="control-group">
+            <label>LIM RELEASE (ms)</label>
+            <input type="number" id="cv-lim-rel" step="10" min="10" max="2000"
+              onchange="updateLimiter('release', this.value)">
+          </div>
+        </div>
+      </div>
+
+      <!-- PEQ -->
+      <div class="card">
+        <div class="card-title">PARAMETRIC EQ</div>
+        <div class="graph-container">
+          <canvas id="peq-canvas"></canvas>
+        </div>
+        <div style="margin-top: 15px; overflow-x: auto;">
+          <table class="peq-table" id="peq-table">
+            <thead>
+              <tr>
+                <th>BAND</th>
+                <th>ON</th>
+                <th>FREQ (Hz)</th>
+                <th>GAIN (dB)</th>
+                <th>Q</th>
+                <th>TYPE</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Generated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRESETS -->
+    <div id="presets" class="panel-container">
+      <div class="card">
+        <div class="card-title">PRESET MANAGEMENT</div>
+        <div class="control-grid">
+          <div class="card">
+            <h3 style="margin-top:0; color:var(--cyan);">PRESET 1</h3>
+            <div class="flex-row">
+              <button class="btn" onclick="savePreset(0)">SAVE TO SLOT 1</button>
+              <button class="btn" style="border-color:var(--org); color:var(--org)" onclick="loadPreset(0)">LOAD SLOT
+                1</button>
+            </div>
+          </div>
+          <div class="card">
+            <h3 style="margin-top:0; color:var(--cyan);">PRESET 2</h3>
+            <div class="flex-row">
+              <button class="btn" onclick="savePreset(1)">SAVE TO SLOT 2</button>
+              <button class="btn" style="border-color:var(--org); color:var(--org)" onclick="loadPreset(1)">LOAD SLOT
+                2</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // GLOBALS
+    let state = null;
+    let activeTab = 'dashboard';
+    let activeChannelType = 'in'; // 'in' or 'out'
+    let activeChannelIdx = 0;
+    let ws = null;
+    let reconnectTimer = null;
+
+    const PEQ_COLORS = [
+      '#F03C46', '#FFA014', '#FADC28', '#28E66E', '#00D2F0', '#5082FF', '#9664FF', '#DC5AF0',
+      '#E6E6E6', '#F03C46', '#FFA014', '#FADC28', '#28E66E', '#00D2F0', '#5082FF'
+    ];
+
+    // INIT
+    function init() {
+      setupTabs();
+      connectWS();
+      fetchState();
+    }
+
+    function setupTabs() {
+      document.querySelectorAll('.tab').forEach(t => {
+        t.addEventListener('click', () => {
+          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+          t.classList.add('active');
+
+          const target = t.getAttribute('data-target');
+          document.querySelectorAll('.panel-container').forEach(p => p.classList.remove('active'));
+
+          if (target === 'dashboard' || target === 'presets') {
+            document.getElementById(target).classList.add('active');
+          } else {
+            document.getElementById('channel-view').classList.add('active');
+            activeChannelType = target.startsWith('in') ? 'in' : 'out';
+            activeChannelIdx = parseInt(target.replace('in', '').replace('out', '')) - 1;
+            renderChannelView();
+          }
+          activeTab = target;
+        });
+      });
+    }
+
+    // NETWORKING
+    function connectWS() {
+      if (ws) { ws.close(); }
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      ws = new WebSocket(`${protocol}//${location.host}/ws`);
+
+      ws.onopen = () => {
+        document.getElementById('ws-status').textContent = 'CONNECTED';
+        document.getElementById('ws-status').className = 'status-badge connected';
+        if (reconnectTimer) clearInterval(reconnectTimer);
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-status').textContent = 'DISCONNECTED';
+        document.getElementById('ws-status').className = 'status-badge disconnected';
+        if (!reconnectTimer) reconnectTimer = setInterval(connectWS, 2000);
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          if (data.type === 'full_state') {
+            state = data;
+            renderAll();
+          } else if (data.type === 'meter') {
+            updateMeters(data.vu);
+          }
+        } catch (err) { console.error("WS Parse error", err); }
+      };
+    }
+
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/state');
+        state = await res.json();
+        document.getElementById('device-name').textContent = state.device;
+        document.getElementById('fw-version').textContent = 'v' + state.firmware;
+        renderAll();
+      } catch (err) { console.error("Fetch state error", err); }
+    }
+
+    async function pushStateUpdate(updates) {
+      try {
+        await fetch('/api/state', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+      } catch (e) { console.error("Update failed", e); }
+    }
+
+    // RENDER LOGIC
+    function renderAll() {
+      if (!state) return;
+      renderDashboard();
+      if (activeTab.startsWith('in') || activeTab.startsWith('out')) {
+        renderChannelView();
+      }
+    }
+
+    function renderDashboard() {
+      // METERS
+      const mContainer = document.getElementById('meters-view');
+      mContainer.innerHTML = '';
+      const labels = ['L', 'R', '01', '02', '03', '04'];
+      const colors = ['cyan', 'org', 'grn', 'grn', 'grn', 'grn'];
+
+      for (let i = 0; i < 6; i++) {
+        mContainer.innerHTML += `
+                    <div class="meter-group">
+                        <div class="meter-bar-container">
+                            <div class="meter-bar" id="vu-bar-${i}" style="height: 0%; background-color: var(--${colors[i]})"></div>
+                            <div class="meter-peak" id="vu-peak-${i}" style="bottom: 0%"></div>
+                        </div>
+                        <div class="meter-label" style="color: var(--${colors[i]})">${labels[i]}</div>
+                        <div class="meter-label" id="vu-val-${i}" style="font-size:12px; color:var(--gry);">-90</div>
+                    </div>
+                `;
+      }
+
+      // ROUTING
+      const rContainer = document.getElementById('routing-view');
+      rContainer.innerHTML = '';
+      for (let i = 0; i < 4; i++) {
+        const out = state.outs[i];
+        let src = 'NONE';
+        if (out.srcIn1 && out.srcIn2) src = 'IN 1 + IN 2';
+        else if (out.srcIn1) src = 'IN 1 (L)';
+        else if (out.srcIn2) src = 'IN 2 (R)';
+
+        rContainer.innerHTML += `
+                    <div class="control-group">
+                        <label>OUT ${i + 1} SOURCE</label>
+                        <select onchange="updateRouting(${i}, this.value)">
+                            <option value="0" ${!out.srcIn1 && !out.srcIn2 ? 'selected' : ''}>NONE</option>
+                            <option value="1" ${out.srcIn1 && !out.srcIn2 ? 'selected' : ''}>IN 1 (L)</option>
+                            <option value="2" ${!out.srcIn1 && out.srcIn2 ? 'selected' : ''}>IN 2 (R)</option>
+                            <option value="3" ${out.srcIn1 && out.srcIn2 ? 'selected' : ''}>IN 1 + IN 2</option>
+                        </select>
+                    </div>
+                `;
+      }
+    }
+
+    function updateMeters(vu) {
+      for (let i = 0; i < 6; i++) {
+        let db = vu[i];
+        if (db < -60) db = -60;
+        if (db > 12) db = 12;
+        const pct = ((db + 60) / 72) * 100;
+        const bar = document.getElementById(`vu-bar-${i}`);
+        if (bar) {
+          bar.style.height = `${pct}%`;
+          document.getElementById(`vu-val-${i}`).textContent = Math.round(db);
+
+          if (db > -3) bar.style.backgroundColor = 'var(--red)';
+          else if (db > -12) bar.style.backgroundColor = 'var(--yel)';
+          else {
+            const colors = ['cyan', 'org', 'grn', 'grn', 'grn', 'grn'];
+            bar.style.backgroundColor = `var(--${colors[i]})`;
+          }
+        }
+      }
+    }
+
+    function getActiveChannel() {
+      return activeChannelType === 'in' ? state.ins[activeChannelIdx] : state.outs[activeChannelIdx];
+    }
+
+    function renderChannelView() {
+      const ch = getActiveChannel();
+      if (!ch) return;
+
+      document.getElementById('cv-title').textContent = `${activeChannelType.toUpperCase()} ${activeChannelIdx + 1} - ${ch.name}`;
+
+      // BASIC
+      const muteBtn = document.getElementById('cv-mute');
+      muteBtn.textContent = ch.mute ? 'ON' : 'OFF';
+      muteBtn.className = `btn-toggle ${ch.mute ? 'active red' : ''}`;
+
+      document.getElementById('cv-gain').value = ch.gain;
+      document.getElementById('cv-delay').value = ch.delay;
+
+      if (activeChannelType === 'in') {
+        document.getElementById('cv-phase-group').style.display = 'none';
+        document.getElementById('cv-xover-card').style.display = 'none';
+      } else {
+        document.getElementById('cv-phase-group').style.display = 'flex';
+        document.getElementById('cv-xover-card').style.display = 'block';
+
+        const phaseBtn = document.getElementById('cv-phase');
+        phaseBtn.textContent = ch.invert ? '180°' : '0°';
+        phaseBtn.className = `btn-toggle ${ch.invert ? 'active org' : ''}`;
+
+        // XOVER
+        const hpBtn = document.getElementById('cv-hp-on');
+        hpBtn.textContent = ch.xover.hp.on ? 'ON' : 'OFF';
+        hpBtn.className = `btn-toggle ${ch.xover.hp.on ? 'active grn' : ''}`;
+        document.getElementById('cv-hp-f').value = ch.xover.hp.f;
+        document.getElementById('cv-hp-type').value = ch.xover.hp.type;
+
+        const lpBtn = document.getElementById('cv-lp-on');
+        lpBtn.textContent = ch.xover.lp.on ? 'ON' : 'OFF';
+        lpBtn.className = `btn-toggle ${ch.xover.lp.on ? 'active org' : ''}`;
+        document.getElementById('cv-lp-f').value = ch.xover.lp.f;
+        document.getElementById('cv-lp-type').value = ch.xover.lp.type;
+
+        drawXover(ch.xover);
+      }
+
+      // LIMITER
+      const limBtn = document.getElementById('cv-lim-on');
+      limBtn.textContent = ch.lim.on ? 'ON' : 'OFF';
+      limBtn.className = `btn-toggle ${ch.lim.on ? 'active org' : ''}`;
+      document.getElementById('cv-lim-thr').value = ch.lim.thr;
+      document.getElementById('cv-lim-att').value = ch.lim.attack;
+      document.getElementById('cv-lim-rel').value = ch.lim.release;
+
+      // PEQ
+      renderPeqTable(ch.peq);
+      drawPeq(ch.peq);
+    }
+
+    function renderPeqTable(peqs) {
+      const tbody = document.querySelector('#peq-table tbody');
+      tbody.innerHTML = '';
+      peqs.forEach((p, i) => {
+        tbody.innerHTML += `
+                    <tr>
+                        <td><div style="width:12px;height:12px;background:${PEQ_COLORS[i]};border-radius:50%;display:inline-block;margin-right:5px"></div> ${i + 1}</td>
+                        <td><input type="checkbox" ${p.on ? 'checked' : ''} onchange="updatePeq(${i}, 'on', this.checked)"></td>
+                        <td><input type="number" value="${p.f}" step="1" min="20" max="20000" style="width:70px" onchange="updatePeq(${i}, 'f', this.value)"></td>
+                        <td><input type="number" value="${p.g}" step="0.5" min="-24" max="24" style="width:60px" onchange="updatePeq(${i}, 'g', this.value)"></td>
+                        <td><input type="number" value="${p.q}" step="0.1" min="0.1" max="20" style="width:60px" onchange="updatePeq(${i}, 'q', this.value)"></td>
+                        <td>
+                            <select style="width:80px" onchange="updatePeq(${i}, 'type', this.value)">
+                                <option value="0" ${p.type == 0 ? 'selected' : ''}>BELL</option>
+                                <option value="1" ${p.type == 1 ? 'selected' : ''}>LSHELF</option>
+                                <option value="2" ${p.type == 2 ? 'selected' : ''}>HSHELF</option>
+                                <option value="3" ${p.type == 3 ? 'selected' : ''}>NOTCH</option>
+                                <option value="4" ${p.type == 4 ? 'selected' : ''}>ALLPASS</option>
+                                <option value="5" ${p.type == 5 ? 'selected' : ''}>LP</option>
+                                <option value="6" ${p.type == 6 ? 'selected' : ''}>HP</option>
+                            </select>
+                        </td>
+                    </tr>
+                `;
+      });
+    }
+
+    // ACTIONS
+    function updateRouting(outIdx, val) {
+      const v = parseInt(val);
+      const in1 = (v === 1 || v === 3);
+      const in2 = (v === 2 || v === 3);
+      state.outs[outIdx].srcIn1 = in1;
+      state.outs[outIdx].srcIn2 = in2;
+      pushStateUpdate({ outs: state.outs });
+      renderDashboard();
+    }
+
+    function toggleParam(param) {
+      const ch = getActiveChannel();
+      ch[param] = !ch[param];
+      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
+      pushStateUpdate(updates);
+      renderChannelView();
+    }
+
+    function updateParam(param, val) {
+      const ch = getActiveChannel();
+      ch[param] = parseFloat(val);
+      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
+      pushStateUpdate(updates);
+      renderChannelView();
+    }
+
+    function toggleXover(sec) {
+      const ch = getActiveChannel();
+      ch.xover[sec].on = !ch.xover[sec].on;
+      pushStateUpdate({ outs: state.outs });
+      renderChannelView();
+    }
+
+    function updateXover(sec, param, val) {
+      const ch = getActiveChannel();
+      ch.xover[sec][param] = parseFloat(val);
+      pushStateUpdate({ outs: state.outs });
+      renderChannelView();
+    }
+
+    function toggleLimiter() {
+      const ch = getActiveChannel();
+      ch.lim.on = !ch.lim.on;
+      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
+      pushStateUpdate(updates);
+      renderChannelView();
+    }
+    function updateLimiter(param, val) {
+      const ch = getActiveChannel();
+      ch.lim[param] = parseFloat(val);
+      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
+      pushStateUpdate(updates);
+    }
+
+    function updatePeq(idx, param, val) {
+      const ch = getActiveChannel();
+      if (param === 'on') ch.peq[idx][param] = val;
+      else ch.peq[idx][param] = parseFloat(val);
+      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
+      pushStateUpdate(updates);
+      drawPeq(ch.peq);
+    }
+
+    // PRESETS
+    async function savePreset(slot) {
+      try {
+        // We'll send a custom JSON message over WS, or define a new endpoint.
+        // Since api_put handles standard state, let's use WS for commands.
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'preset_save', slot: slot }));
+          alert(`Saved to Preset ${slot + 1}`);
+        }
+      } catch (e) { }
+    }
+    async function loadPreset(slot) {
+      try {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'preset_load', slot: slot }));
+          alert(`Loading Preset ${slot + 1}...`);
+        }
+      } catch (e) { }
+    }
+
+    // GRAPHS (Simplistic representation for UI)
+    function drawGrid(ctx, w, h) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#10344A';
+      ctx.lineWidth = 1;
+
+      // dB lines
+      for (let db = -24; db <= 24; db += 12) {
+        const y = h / 2 - (db * (h / 48));
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.fillStyle = '#7891A0';
+        ctx.fillText(`${db}`, 5, y - 2);
+      }
+
+      // Freq lines (log scale)
+      const freqs = [20, 100, 1000, 10000, 20000];
+      freqs.forEach(f => {
+        const x = w * Math.log10(f / 20) / 3;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+        ctx.fillText(`${f >= 1000 ? f / 1000 + 'k' : f}`, x + 2, h - 5);
+      });
+    }
+
+    function drawXover(xo) {
+      const cvs = document.getElementById('xover-canvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width = cvs.offsetWidth;
+      const h = cvs.height = cvs.offsetHeight;
+
+      drawGrid(ctx, w, h);
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#00D2F0'; // cyan
+      ctx.lineWidth = 2;
+
+      for (let px = 0; px < w; px++) {
+        const f = 20 * Math.pow(10, 3 * px / w);
+        let db = 0;
+        if (xo.hp.on && xo.hp.type > 0) {
+          const r = xo.hp.f / f;
+          db += -12 * Math.log10(1 + Math.pow(r, xo.hp.type * 2));
+        }
+        if (xo.lp.on && xo.lp.type > 0) {
+          const r = f / xo.lp.f;
+          db += -12 * Math.log10(1 + Math.pow(r, xo.lp.type * 2));
+        }
+
+        if (db < -30) db = -30;
+        const y = h / 2 - (db * (h / 60)); // different scale for xover
+        if (px === 0) ctx.moveTo(px, y);
+        else ctx.lineTo(px, y);
+      }
+      ctx.stroke();
+    }
+
+    function drawPeq(peqs) {
+      const cvs = document.getElementById('peq-canvas');
+      if (!cvs) return;
+      const ctx = cvs.getContext('2d');
+      const w = cvs.width = cvs.offsetWidth;
+      const h = cvs.height = cvs.offsetHeight;
+
+      drawGrid(ctx, w, h);
+
+      // Composite curve
+      ctx.beginPath();
+      ctx.strokeStyle = '#00D2F0';
+      ctx.lineWidth = 2;
+
+      for (let px = 0; px < w; px++) {
+        const f = 20 * Math.pow(10, 3 * px / w);
+        let db = 0;
+        // very rough approx for visual ONLY!
+        peqs.forEach(p => {
+          if (!p.on || p.g === 0) return;
+          const w0 = f / p.f;
+          const b = (w0 - 1 / w0) * p.q;
+          db += p.g / (1 + b * b);
+        });
+        if (db < -24) db = -24; if (db > 24) db = 24;
+        const y = h / 2 - (db * (h / 48));
+        if (px === 0) ctx.moveTo(px, y);
+        else ctx.lineTo(px, y);
+      }
+      ctx.stroke();
+
+      // Band dots
+      peqs.forEach((p, i) => {
+        if (!p.on) return;
+        const x = w * Math.log10(p.f / 20) / 3;
+        const y = h / 2 - (p.g * (h / 48));
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fillStyle = PEQ_COLORS[i];
+        ctx.fill();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        ctx.fillStyle = '#fff';
+        ctx.font = '10px sans-serif';
+        ctx.fillText(i + 1, x - 3, y + 3);
+      });
+    }
+
+    window.onload = init;
+  </script>
+</body>
+
+</html>
