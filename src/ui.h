@@ -7,6 +7,8 @@
 #include "boot_logo.h"
 
 extern void storage_save_audio_state(void);
+extern void storage_save_system(void);
+extern void wifi_apply_from_lcd(bool on, uint8_t mode, const char *password);
 extern bool storage_save_preset(int slot);
 extern bool storage_load_preset(int slot);
 extern bool storage_preset_exists(int slot);
@@ -164,7 +166,6 @@ static bool confSave = false, confYes = true;
 static int confSlot = 0;
 static const char *toastMsg = nullptr;
 static uint32_t toastUntil = 0, lastDraw = 0;
-static bool wifiBleEnabled = false;
 
 static uint32_t lastActivityMs = 0;
 static bool screenOff = false;
@@ -384,7 +385,7 @@ static void drawMain() {
   box(70, 18, 88, 29, C_LINE, C_PANEL, 4);
   T("48.0kHz 32bit", 76, 23, 1, C_WHT, ML_DATUM);
   T("2 IN > 4 OUT", 76, 32, 1, C_CYAN, ML_DATUM);
-  if (wifiBleEnabled) {
+  if (g_dlms.wifi_on) {
     T("WIFI ON", 76, 41, 1, C_GRN, ML_DATUM);
   } else {
     T("WIFI OFF", 76, 41, 1, C_GRY, ML_DATUM);
@@ -948,14 +949,16 @@ static void drawGlobal() {
       spr.drawFastHLine(24, y + 14, 2, ic[idx]);
     }
     T(t1[idx], 34, y + 9, 2, s ? C_GRN : C_WHT, ML_DATUM);
-    if (idx == 4 && g_dlms.wifi_on) {
-      T(g_dlms.wifi_mode == RACK_LCD_WIFI_AP ? g_dlms.ap_ip : g_dlms.ip, 34, y + 22, 1, C_CYAN, ML_DATUM);
+    if (idx == 4) {
+      if (g_dlms.wifi_on) {
+        T(g_dlms.wifi_mode == RACK_LCD_WIFI_AP ? g_dlms.ap_ip : g_dlms.ip, 34, y + 22, 1, C_CYAN, ML_DATUM);
+      } else {
+        T("OFF (DISABLED)", 34, y + 22, 1, C_GRY, ML_DATUM);
+      }
+      T(g_dlms.wifi_on ? "ON" : "OFF", 146, y + 15, 2,
+        g_dlms.wifi_on ? C_GRN : C_RED, MR_DATUM);
     } else {
       T(t2[idx], 34, y + 22, 1, C_GRY, ML_DATUM);
-    }
-    if (idx == 4) {
-      T(wifiBleEnabled ? "ON" : "OFF", 146, y + 15, 2,
-        wifiBleEnabled ? C_GRN : C_RED, MR_DATUM);
     }
   }
   footer(sel[S_GLOBAL] == 6);
@@ -1350,8 +1353,13 @@ static void handle(const Input &in) {
     else if (r == 3)
       enter(S_COPY);
     else if (r == 4) {
-      wifiBleEnabled = !wifiBleEnabled;
+      bool new_on = !g_dlms.wifi_on;
+      g_dlms.wifi_on = new_on;
+      wifi_apply_from_lcd(new_on, g_dlms.wifi_mode, g_dlms.wifi_password);
+      storage_save_system();
+      dlms_ws_broadcast_state();
       dirty = true;
+      showToast(new_on ? "WIFI ON" : "WIFI OFF");
     } else if (r == 5) {
       enter(S_LCD);
     }

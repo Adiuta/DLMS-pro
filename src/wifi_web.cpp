@@ -10,6 +10,7 @@
 #include "esp_log.h"
 #include "esp_netif.h"
 #include "esp_wifi.h"
+#include "dhcpserver/dhcpserver_options.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
@@ -599,6 +600,13 @@ static void configure_ap_netif(void) {
   ip.netmask.addr = esp_ip4addr_aton("255.255.255.0");
   esp_netif_dhcps_stop(s_ap);
   esp_netif_set_ip_info(s_ap, &ip);
+
+  dhcps_lease_t lease = {0};
+  lease.enable = true;
+  lease.start_ip.addr = esp_ip4addr_aton("192.168.240.2");
+  lease.end_ip.addr   = esp_ip4addr_aton("192.168.240.20");
+  esp_netif_dhcps_option(s_ap, ESP_NETIF_OP_SET, ESP_NETIF_REQUESTED_IP_ADDRESS, &lease, sizeof(dhcps_lease_t));
+
   esp_netif_dhcps_start(s_ap);
 }
 
