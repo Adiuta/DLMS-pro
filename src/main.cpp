@@ -19,6 +19,10 @@ extern "C" void mark_ui_dirty() {
   ui::set_dirty();
 }
 
+extern "C" void mark_audio_dirty() {
+  ui::schedule_autosave();
+}
+
 static const char *reset_reason_str(esp_reset_reason_t r) {
   switch (r) {
   case ESP_RST_POWERON:   return "POWERON";

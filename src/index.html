@@ -1,1035 +1,1980 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DLMS 2x4 Pro</title>
+  <title>DLMS 2x4 PRO | Digital Loudspeaker Management System</title>
   <style>
     :root {
-      --bg: #000a14;
-      --hdr: #000a14;
-      --panel: #001224;
-      --edit: #362000;
-      --dim: #003050;
-      --line: #00aaff;
-      --cyan: #00ffff;
-      --org: #ffa500;
-      --grn: #00ff55;
-      --red: #ff3333;
-      --yel: #ffff00;
-      --mag: #ff00ff;
-      --blu: #3366ff;
-      --wht: #ffffff;
-      --gry: #7891a0;
-      --font: 'Consolas', 'Courier New', monospace;
+      --bg-dark: #050b14;
+      --bg-card: #091524;
+      --bg-card-sub: #0d1e33;
+      --bg-input: #07101b;
+      --border: #13334d;
+      --border-focus: #00d2f0;
+      --text-main: #f0f6fc;
+      --text-muted: #7996aa;
+      --text-dim: #446074;
+      --cyan: #00d2f0;
+      --cyan-glow: rgba(0, 210, 240, 0.35);
+      --orange: #ff9100;
+      --orange-glow: rgba(255, 145, 0, 0.35);
+      --green: #00e676;
+      --red: #ff1744;
+      --yellow: #ffd600;
+      --blue: #2979ff;
+      --purple: #d500f9;
+      --font-mono: 'Consolas', 'Courier New', ui-monospace, monospace;
+      --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     }
 
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
-      background-color: var(--bg);
-      color: var(--wht);
-      font-family: var(--font);
-      margin: 0;
-      padding: 0;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-sans);
       display: flex;
       flex-direction: column;
       height: 100vh;
       overflow: hidden;
-    }
-
-    /* HEADER */
-    .header {
-      background-color: var(--hdr);
-      border-bottom: 2px solid var(--line);
-      padding: 10px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .header h1 {
-      margin: 0;
-      font-size: 20px;
-      color: var(--wht);
-      font-weight: bold;
-    }
-
-    .header-status {
-      display: flex;
-      gap: 15px;
-      font-size: 14px;
-    }
-
-    .status-badge {
-      background-color: var(--panel);
-      border: 1px solid var(--line);
-      padding: 4px 10px;
-      border-radius: 4px;
-      color: var(--cyan);
-    }
-
-    .status-badge.connected {
-      border-color: var(--grn);
-      color: var(--grn);
-    }
-
-    .status-badge.disconnected {
-      border-color: var(--red);
-      color: var(--red);
-    }
-
-    /* TABS */
-    .tabs {
-      display: flex;
-      background-color: var(--hdr);
-      border-bottom: 1px solid var(--line);
-    }
-
-    .tab {
-      padding: 12px 20px;
-      cursor: pointer;
-      color: var(--gry);
-      font-weight: bold;
-      border-bottom: 3px solid transparent;
-    }
-
-    .tab:hover {
-      color: var(--wht);
-    }
-
-    .tab.active {
-      color: var(--org);
-      border-bottom-color: var(--org);
-    }
-
-    /* MAIN CONTENT */
-    .content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 20px;
-      display: flex;
-      gap: 20px;
-    }
-
-    .panel-container {
-      display: none;
-      flex: 1;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .panel-container.active {
-      display: flex;
-    }
-
-    /* CARDS */
-    .card {
-      background-color: var(--panel);
-      border: 2px solid var(--line);
-      border-radius: 2px;
-      padding: 15px;
-      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-      position: relative;
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      border: 2px solid var(--line);
-      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-      pointer-events: none;
-    }
-
-    .card-title {
-      color: var(--wht);
-      font-size: 18px;
-      font-weight: bold;
-      margin-top: 0;
-      margin-bottom: 15px;
-      padding-bottom: 5px;
-      border-bottom: 2px solid var(--line);
-      text-transform: uppercase;
-      text-align: center;
-      letter-spacing: 2px;
-    }
-
-    /* METERS */
-    .meter-container {
-      display: flex;
-      gap: 15px;
-      justify-content: space-between;
-    }
-
-    .meter-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .meter-bar-container {
-      width: 25px;
-      height: 180px;
-      background-color: var(--bg);
-      border: 2px solid var(--line);
-      border-radius: 0;
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column-reverse;
-      background-image: repeating-linear-gradient(0deg, transparent, transparent 6px, var(--bg) 6px, var(--bg) 8px);
-      z-index: 1;
-    }
-
-    .meter-bar {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background-color: var(--cyan);
-      transition: height 0.1s ease-out;
-      z-index: -1;
-    }
-
-    .meter-bar.org {
-      background-color: var(--org);
-    }
-
-    .meter-bar.grn {
-      background-color: var(--grn);
-    }
-
-    .meter-peak {
-      position: absolute;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background-color: var(--wht);
-      transition: bottom 0.2s;
-      z-index: 2;
-    }
-
-    .meter-label {
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--cyan);
-    }
-
-    .meter-label.org {
-      color: var(--org);
-    }
-
-    .meter-label.grn {
-      color: var(--grn);
-    }
-
-    /* CONTROLS */
-    .control-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 15px;
-    }
-
-    .control-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .control-group label {
-      font-size: 14px;
-      color: var(--wht);
-      font-weight: bold;
-      text-transform: uppercase;
-    }
-
-    .input-wrapper {
-      display: flex;
-      align-items: center;
-    }
-
-    input[type="number"],
-    select {
-      width: 100%;
-      background-color: var(--bg);
-      border: 2px solid var(--line);
-      color: var(--wht);
-      padding: 8px;
-      border-radius: 0px;
-      font-family: inherit;
-      font-size: 18px;
-      font-weight: bold;
-      clip-path: polygon(6px 0, calc(100% - 6px) 0, 100% 6px, 100% calc(100% - 6px), calc(100% - 6px) 100%, 6px 100%, 0 calc(100% - 6px), 0 6px);
-    }
-
-    input[type="number"]:focus,
-    select:focus {
-      border-color: var(--org);
-      outline: none;
-      color: var(--org);
-    }
-
-    .btn-toggle {
-      background-color: var(--dim);
-      border: 2px solid var(--line);
-      color: var(--wht);
-      padding: 8px 15px;
-      cursor: pointer;
-      font-weight: bold;
-      transition: all 0.2s;
-      text-align: center;
-      user-select: none;
-      clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 8px, 100% calc(100% - 8px), calc(100% - 8px) 100%, 8px 100%, 0 calc(100% - 8px), 0 8px);
-      font-size: 16px;
-    }
-
-    .btn-toggle.active.red {
-      background-color: var(--bg);
-      border-color: var(--red);
-      color: var(--red);
-    }
-
-    .btn-toggle.active.grn {
-      background-color: var(--bg);
-      border-color: var(--grn);
-      color: var(--grn);
-    }
-
-    .btn-toggle.active.org {
-      background-color: var(--bg);
-      border-color: var(--org);
-      color: var(--org);
-    }
-
-    .btn {
-      background-color: var(--panel);
-      border: 2px solid var(--cyan);
-      color: var(--wht);
-      padding: 12px 20px;
-      cursor: pointer;
-      font-weight: bold;
-      text-transform: uppercase;
-      clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px), 0 10px);
-      font-size: 18px;
-      min-width: 120px;
-    }
-
-    .btn:hover {
-      background-color: var(--cyan);
-      color: var(--bg);
-    }
-
-    .btn.btn-grn {
-      border-color: var(--grn);
-      color: var(--grn);
-      font-size: 24px;
-      padding: 15px 30px;
-    }
-
-    .btn.btn-grn:hover {
-      background-color: var(--grn);
-      color: var(--bg);
-    }
-
-    .btn.btn-red {
-      border-color: var(--red);
-      color: var(--red);
-      font-size: 24px;
-      padding: 15px 30px;
-    }
-
-    .btn.btn-red:hover {
-      background-color: var(--red);
-      color: var(--bg);
-    }
-
-    /* GRAPHS */
-    .graph-container {
-      width: 100%;
-      height: 200px;
-      background-color: var(--bg);
-      border: 1px solid var(--line);
-      border-radius: 4px;
-      position: relative;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-    }
-
-    /* PEQ TABLE */
-    .peq-table {
-      width: 100%;
-      border-collapse: collapse;
       font-size: 13px;
     }
 
-    .peq-table th {
-      text-align: left;
-      color: var(--cyan);
-      padding: 8px;
-      border-bottom: 1px solid var(--dim);
-    }
-
-    .peq-table td {
-      padding: 8px;
-      border-bottom: 1px solid var(--dim);
-    }
-
-    .peq-table tr:hover {
-      background-color: var(--dim);
-    }
-
-    .flex-row {
+    /* TOP HEADER */
+    header {
+      background: linear-gradient(180deg, #091829 0%, #06111f 100%);
+      border-bottom: 2px solid var(--border);
+      padding: 8px 16px;
       display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    }
+    .brand-wrap { display: flex; align-items: center; gap: 12px; }
+    .brand-title {
+      font-family: var(--font-mono);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .brand-badge {
+      background: var(--cyan);
+      color: #000;
+      font-size: 10px;
+      font-weight: 900;
+      padding: 1px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.5px;
+    }
+    .header-info { display: flex; align-items: center; gap: 14px; font-family: var(--font-mono); font-size: 11px; }
+    .badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--text-muted);
+    }
+    .badge.connected { border-color: var(--green); color: var(--green); }
+    .badge.disconnected { border-color: var(--red); color: var(--red); }
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+    .connected .status-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+
+    /* RTA SPECTRUM SECTION */
+    .rta-container {
+      background: #040910;
+      border-bottom: 1px solid var(--border);
+      padding: 4px 14px;
+      height: 74px;
+      flex-shrink: 0;
+      position: relative;
+    }
+    .rta-header {
+      display: flex;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--text-dim);
+      margin-bottom: 2px;
+    }
+    #rta-canvas {
+      width: 100%;
+      height: 52px;
+      display: block;
+      border-radius: 2px;
+    }
+
+    /* NAVIGATION TABS */
+    nav.tabs-nav {
+      background: #071322;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      gap: 2px;
+      padding: 4px 10px 0;
+      overflow-x: auto;
+      flex-shrink: 0;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-top-left-radius: 6px;
+      border-top-right-radius: 6px;
+      border-bottom: 3px solid transparent;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .tab-btn:hover { color: #fff; background: rgba(0, 210, 240, 0.05); }
+    .tab-btn.active {
+      color: #fff;
+      background: var(--bg-card);
+      border-bottom: 3px solid var(--cyan);
+      box-shadow: 0 -2px 10px rgba(0, 210, 240, 0.15);
+    }
+    .tab-btn.active.out-tab { border-bottom-color: var(--orange); }
+    .tab-btn.active.sys-tab { border-bottom-color: var(--purple); }
+
+    /* VIEW CONTAINER */
+    main.content-view {
+      flex: 1;
+      overflow-y: auto;
+      background-color: var(--bg-dark);
+      padding: 14px;
+      position: relative;
+    }
+    .view-page { display: none; height: 100%; }
+    .view-page.active { display: flex; flex-direction: column; gap: 14px; }
+
+    /* DASHBOARD GRID */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
       gap: 10px;
+      height: 100%;
+      min-height: 480px;
+    }
+    @media (max-width: 1024px) {
+      .dashboard-grid { grid-template-columns: repeat(3, 1fr); height: auto; }
+      body { overflow-y: auto; }
+    }
+    @media (max-width: 640px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    /* CHANNEL STRIP */
+    .strip-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      position: relative;
+    }
+    .strip-card.in-strip { border-top: 3px solid var(--cyan); }
+    .strip-card.out-strip { border-top: 3px solid var(--orange); }
+    .strip-header {
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
       align-items: center;
     }
-  </style>
-</head>
-
-<body>
-
-  <div class="header">
-    <h1 id="device-name">DLMS 240 Pro</h1>
-    <div class="header-status">
-      <div class="status-badge" id="ws-status">Connecting...</div>
-      <div class="status-badge" id="fw-version">v2.4.1</div>
-    </div>
-  </div>
-
-  <div class="tabs" id="main-tabs">
-    <div class="tab active" data-target="dashboard">DASHBOARD</div>
-    <div class="tab" data-target="in1">IN 1</div>
-    <div class="tab" data-target="in2">IN 2</div>
-    <div class="tab" data-target="out1">OUT 1</div>
-    <div class="tab" data-target="out2">OUT 2</div>
-    <div class="tab" data-target="out3">OUT 3</div>
-    <div class="tab" data-target="out4">OUT 4</div>
-    <div class="tab" data-target="presets">PRESETS</div>
-  </div>
-
-  <div class="content">
-    <!-- DASHBOARD -->
-    <div id="dashboard" class="panel-container active">
-      <div class="card">
-        <div class="card-title">LEVEL METERS</div>
-        <div class="meter-container" id="meters-view">
-          <!-- Meters generated by JS -->
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">ROUTING MATRIX</div>
-        <div class="control-grid" id="routing-view">
-          <!-- Routing generated by JS -->
-        </div>
-      </div>
-    </div>
-
-    <!-- CHANNEL VIEW (Template for JS) -->
-    <div id="channel-view" class="panel-container">
-      <div class="card">
-        <div class="card-title" id="cv-title">CHANNEL SETUP</div>
-        <div class="control-grid">
-          <div class="control-group">
-            <label>MUTE</label>
-            <div class="btn-toggle red" id="cv-mute" onclick="toggleParam('mute')">OFF</div>
-          </div>
-          <div class="control-group">
-            <label>GAIN (dB)</label>
-            <input type="number" id="cv-gain" step="0.5" min="-80" max="12" onchange="updateParam('gain', this.value)">
-          </div>
-          <div class="control-group" id="cv-phase-group">
-            <label>PHASE</label>
-            <div class="btn-toggle org" id="cv-phase" onclick="toggleParam('invert')">0&deg;</div>
-          </div>
-          <div class="control-group">
-            <label>DELAY (ms)</label>
-            <input type="number" id="cv-delay" step="0.1" min="0" max="150" onchange="updateParam('delay', this.value)">
-          </div>
-        </div>
-      </div>
-
-      <!-- XOVER -->
-      <div class="card" id="cv-xover-card">
-        <div class="card-title">CROSSOVER</div>
-        <div class="graph-container">
-          <canvas id="xover-canvas"></canvas>
-        </div>
-        <div class="control-grid" style="margin-top: 15px;">
-          <div class="control-group">
-            <label>HPF BYPASS</label>
-            <div class="btn-toggle grn" id="cv-hp-on" onclick="toggleXover('hp')">ON</div>
-          </div>
-          <div class="control-group">
-            <label>HPF FREQ (Hz)</label>
-            <input type="number" id="cv-hp-f" step="1" min="20" max="22000"
-              onchange="updateXover('hp', 'f', this.value)">
-          </div>
-          <div class="control-group">
-            <label>HPF TYPE</label>
-            <select id="cv-hp-type" onchange="updateXover('hp', 'type', this.value)">
-              <option value="0">OFF</option>
-              <option value="1">BW12</option>
-              <option value="2">BW18</option>
-              <option value="3">BW24</option>
-              <option value="4">LR12</option>
-              <option value="5">LR24</option>
-            </select>
-          </div>
-
-          <div class="control-group">
-            <label>LPF BYPASS</label>
-            <div class="btn-toggle org" id="cv-lp-on" onclick="toggleXover('lp')">ON</div>
-          </div>
-          <div class="control-group">
-            <label>LPF FREQ (Hz)</label>
-            <input type="number" id="cv-lp-f" step="1" min="20" max="22000"
-              onchange="updateXover('lp', 'f', this.value)">
-          </div>
-          <div class="control-group">
-            <label>LPF TYPE</label>
-            <select id="cv-lp-type" onchange="updateXover('lp', 'type', this.value)">
-              <option value="0">OFF</option>
-              <option value="1">BW12</option>
-              <option value="2">BW18</option>
-              <option value="3">BW24</option>
-              <option value="4">LR12</option>
-              <option value="5">LR24</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- DYNAMICS -->
-      <div class="card">
-        <div class="card-title">LIMITER & GATE</div>
-        <div class="control-grid">
-          <div class="control-group">
-            <label>LIMITER</label>
-            <div class="btn-toggle org" id="cv-lim-on" onclick="toggleLimiter()">OFF</div>
-          </div>
-          <div class="control-group">
-            <label>LIM THRESH (dB)</label>
-            <input type="number" id="cv-lim-thr" step="0.5" min="-40" max="12"
-              onchange="updateLimiter('thr', this.value)">
-          </div>
-          <div class="control-group">
-            <label>LIM ATTACK (ms)</label>
-            <input type="number" id="cv-lim-att" step="1" min="1" max="200"
-              onchange="updateLimiter('attack', this.value)">
-          </div>
-          <div class="control-group">
-            <label>LIM RELEASE (ms)</label>
-            <input type="number" id="cv-lim-rel" step="10" min="10" max="2000"
-              onchange="updateLimiter('release', this.value)">
-          </div>
-        </div>
-      </div>
-
-      <!-- PEQ -->
-      <div class="card">
-        <div class="card-title">PARAMETRIC EQ</div>
-        <div class="graph-container">
-          <canvas id="peq-canvas"></canvas>
-        </div>
-        <div style="margin-top: 15px; overflow-x: auto;">
-          <table class="peq-table" id="peq-table">
-            <thead>
-              <tr>
-                <th>BAND</th>
-                <th>ON</th>
-                <th>FREQ (Hz)</th>
-                <th>GAIN (dB)</th>
-                <th>Q</th>
-                <th>TYPE</th>
-              </tr>
-            </thead>
-            <tbody>
-              <!-- Generated by JS -->
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- PRESETS -->
-    <div id="presets" class="panel-container">
-      <div class="card">
-        <div class="card-title">PRESET MANAGEMENT</div>
-        <div class="control-grid">
-          <div class="card">
-            <h3 style="margin-top:0; color:var(--cyan);">PRESET 1</h3>
-            <div class="flex-row">
-              <button class="btn" onclick="savePreset(0)">SAVE TO SLOT 1</button>
-              <button class="btn" style="border-color:var(--org); color:var(--org)" onclick="loadPreset(0)">LOAD SLOT
-                1</button>
-            </div>
-          </div>
-          <div class="card">
-            <h3 style="margin-top:0; color:var(--cyan);">PRESET 2</h3>
-            <div class="flex-row">
-              <button class="btn" onclick="savePreset(1)">SAVE TO SLOT 2</button>
-              <button class="btn" style="border-color:var(--org); color:var(--org)" onclick="loadPreset(1)">LOAD SLOT
-                2</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // GLOBALS
-    let state = null;
-    let activeTab = 'dashboard';
-    let activeChannelType = 'in'; // 'in' or 'out'
-    let activeChannelIdx = 0;
-    let ws = null;
-    let reconnectTimer = null;
-
-    const PEQ_COLORS = [
-      '#F03C46', '#FFA014', '#FADC28', '#28E66E', '#00D2F0', '#5082FF', '#9664FF', '#DC5AF0',
-      '#E6E6E6', '#F03C46', '#FFA014', '#FADC28', '#28E66E', '#00D2F0', '#5082FF'
-    ];
-
-    // INIT
-    function init() {
-      setupTabs();
-      connectWS();
-      fetchState();
+    .strip-name {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    .strip-route-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border);
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--cyan);
+    }
+    .strip-body {
+      flex: 1;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: space-between;
     }
 
-    function setupTabs() {
-      document.querySelectorAll('.tab').forEach(t => {
-        t.addEventListener('click', () => {
-          document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-          t.classList.add('active');
+    /* METERS ROW */
+    .meters-row {
+      display: flex;
+      gap: 8px;
+      height: 180px;
+      align-items: stretch;
+      justify-content: center;
+      background: #040a12;
+      border: 1px solid #0e2235;
+      border-radius: 6px;
+      padding: 6px;
+    }
+    .meter-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      height: 100%;
+    }
+    .meter-caption {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+    }
+    .meter-track {
+      flex: 1;
+      width: 14px;
+      background: #081420;
+      border: 1px solid #14324c;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .meter-bar {
+      position: absolute;
+      bottom: 0;
+      width: 100%;
+      height: 0%;
+      background: linear-gradient(0deg, var(--green) 0%, var(--green) 70%, var(--yellow) 85%, var(--red) 100%);
+      transition: height 0.05s ease-out;
+    }
+    .meter-peak-line {
+      position: absolute;
+      width: 100%;
+      height: 2px;
+      background: #fff;
+      bottom: 0%;
+      box-shadow: 0 0 4px #fff;
+    }
+    .meter-gr-track {
+      flex: 1;
+      width: 10px;
+      background: #081420;
+      border: 1px solid #14324c;
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+    }
+    .meter-gr-bar {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 0%;
+      background: linear-gradient(180deg, var(--yellow) 0%, var(--red) 100%);
+      transition: height 0.05s ease-out;
+    }
+    .gr-led {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2b0b11;
+      border: 1px solid #5c1825;
+      transition: all 0.1s ease;
+    }
+    .gr-led.active {
+      background: var(--red);
+      box-shadow: 0 0 8px var(--red);
+      border-color: #ff859c;
+    }
+    .meter-db-readout {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
 
-          const target = t.getAttribute('data-target');
-          document.querySelectorAll('.panel-container').forEach(p => p.classList.remove('active'));
+    /* GAIN SLIDER CONTROL */
+    .gain-ctl-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: var(--bg-card-sub);
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .gain-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+    }
+    .gain-val-badge {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--cyan);
+    }
+    .out-strip .gain-val-badge { color: var(--orange); }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-step {
+      background: #0f263e;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      width: 22px;
+      height: 22px;
+      border-radius: 3px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-step:hover { background: var(--cyan); color: #000; }
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type=range]:focus { outline: none; }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 6px;
+      background: #050d17;
+      border: 1px solid #143550;
+      border-radius: 3px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 6px var(--cyan-glow);
+      margin-top: -5px;
+      border: 2px solid #fff;
+    }
+    .out-strip input[type=range]::-webkit-slider-thumb {
+      background: var(--orange);
+      box-shadow: 0 0 6px var(--orange-glow);
+    }
 
-          if (target === 'dashboard' || target === 'presets') {
-            document.getElementById(target).classList.add('active');
-          } else {
-            document.getElementById('channel-view').classList.add('active');
-            activeChannelType = target.startsWith('in') ? 'in' : 'out';
-            activeChannelIdx = parseInt(target.replace('in', '').replace('out', '')) - 1;
-            renderChannelView();
+    /* DSP CHIPS ROW */
+    .dsp-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+    }
+    .chip {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 4px;
+      border-radius: 3px;
+      background: #081524;
+      border: 1px solid #11283d;
+      color: var(--text-dim);
+    }
+    .chip.active {
+      color: #fff;
+      border-color: var(--cyan);
+      background: rgba(0, 210, 240, 0.15);
+    }
+    .chip.active.out-chip {
+      border-color: var(--orange);
+      background: rgba(255, 145, 0, 0.15);
+    }
+
+    /* STRIP ACTION BUTTONS */
+    .strip-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+    .btn-pill {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 7px 4px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: #081626;
+      color: var(--text-muted);
+      text-align: center;
+      transition: all 0.15s ease;
+    }
+    .btn-pill:hover { border-color: #fff; color: #fff; }
+    .btn-pill.muted {
+      background: rgba(255, 23, 68, 0.2);
+      border-color: var(--red);
+      color: var(--red);
+      box-shadow: 0 0 10px rgba(255, 23, 68, 0.3);
+    }
+    .btn-pill.inverted {
+      background: rgba(255, 145, 0, 0.2);
+      border-color: var(--orange);
+      color: var(--orange);
+    }
+    .btn-edit-ch {
+      grid-column: span 2;
+      background: #0d2742;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-edit-ch:hover {
+      background: var(--cyan);
+      color: #000;
+      border-color: var(--cyan);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+    .out-strip .btn-edit-ch:hover {
+      background: var(--orange);
+      border-color: var(--orange);
+      box-shadow: 0 0 12px var(--orange-glow);
+    }
+
+    /* CHANNEL DETAIL VIEW LAYOUT */
+    .detail-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .detail-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .card-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 8px;
+    }
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .card-actions { display: flex; gap: 8px; align-items: center; }
+
+    /* TOGGLE SWITCH */
+    .switch-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 34px;
+      height: 18px;
+    }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider-toggle {
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #091a2b;
+      border: 1px solid #143552;
+      transition: .2s;
+      border-radius: 18px;
+    }
+    .slider-toggle:before {
+      position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px;
+      background-color: var(--text-muted);
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider-toggle {
+      background-color: var(--cyan);
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+    input:checked + .slider-toggle:before {
+      transform: translateX(16px);
+      background-color: #000;
+    }
+
+    /* GRAPH CANVASES */
+    .graph-box {
+      width: 100%;
+      height: 220px;
+      background: #040912;
+      border: 1px solid #0f273d;
+      border-radius: 6px;
+      position: relative;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .graph-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* FORMS & PARAMETER GRIDS */
+    .param-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 12px;
+    }
+    .param-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      background: var(--bg-card-sub);
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .param-item label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+    .param-control {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .input-num {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .input-num:focus { outline: none; border-color: var(--cyan); }
+    .select-ctl {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 5px 8px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .select-ctl:focus { outline: none; border-color: var(--cyan); }
+
+    /* PEQ TABLE */
+    .peq-table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+    table.peq-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    table.peq-table th {
+      background: #0a1c2e;
+      padding: 8px;
+      text-align: left;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    table.peq-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #0c2033;
+    }
+    table.peq-table tr:hover { background: rgba(0, 210, 240, 0.03); }
+
+    /* SYSTEM & PRESET STYLING */
+    .system-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
+    }
+    .preset-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+    }
+    .preset-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-action {
+      background: #0f2742;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-action:hover { border-color: var(--cyan); color: var(--cyan); }
+    .btn-action.btn-save:hover { border-color: var(--green); color: var(--green); }
+    .btn-action.btn-danger {
+      border-color: var(--red);
+      color: var(--red);
+    }
+    .btn-action.btn-danger:hover {
+      background: var(--red);
+      color: #fff;
+    }
+
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: #13334d; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-title">
+        <span>DLMS</span>
+        <span class="brand-badge">2x4 PRO</span>
+      </div>
+      <div id="device-title" style="font-family:var(--font-mono); color:var(--text-muted); font-size:12px;">DLMS 240 PRO</div>
+    </div>
+
+    <div class="header-info">
+      <div class="badge" id="ws-badge">
+        <div class="status-dot"></div>
+        <span id="ws-text">DISCONNECTED</span>
+      </div>
+      <div class="badge">
+        <span>FS:</span> <strong style="color:#fff;" id="fs-text">48 kHz</strong>
+      </div>
+      <div class="badge">
+        <span>IP:</span> <strong style="color:var(--cyan);" id="ip-text">192.168.4.1</strong>
+      </div>
+      <button class="btn-action btn-danger" onclick="confirmResetAll()" style="padding:4px 8px; font-size:10px;">RESET FLAT</button>
+    </div>
+  </header>
+
+  <!-- REAL-TIME RTA SPECTRUM ANALYZER -->
+  <div class="rta-container">
+    <div class="rta-header">
+      <span>REAL-TIME SPECTRUM ANALYZER (RTA 32-BAND)</span>
+      <span>20 Hz — 20 kHz (ADC INPUT MASTER)</span>
+    </div>
+    <canvas id="rta-canvas"></canvas>
+  </div>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="tabs-nav" id="main-tabs">
+    <button class="tab-btn active" data-view="dashboard">OVERVIEW</button>
+    <button class="tab-btn" data-view="in-0">IN 1 (L)</button>
+    <button class="tab-btn" data-view="in-1">IN 2 (R)</button>
+    <button class="tab-btn out-tab" data-view="out-0">OUT 1</button>
+    <button class="tab-btn out-tab" data-view="out-1">OUT 2</button>
+    <button class="tab-btn out-tab" data-view="out-2">OUT 3</button>
+    <button class="tab-btn out-tab" data-view="out-3">OUT 4</button>
+    <button class="tab-btn sys-tab" data-view="system">PRESETS & SYSTEM</button>
+  </nav>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="content-view">
+
+    <!-- 1. DASHBOARD VIEW (6 CHANNEL STRIPS) -->
+    <section class="view-page active" id="view-dashboard">
+      <div class="dashboard-grid" id="strips-container">
+        <!-- Rendered dynamically via renderDashboard() -->
+      </div>
+    </section>
+
+    <!-- 2. CHANNEL DETAIL VIEW (INPUT & OUTPUT) -->
+    <section class="view-page" id="view-channel-detail">
+      <div class="detail-container" id="channel-detail-body">
+        <!-- Rendered dynamically via renderChannelDetail() -->
+      </div>
+    </section>
+
+    <!-- 3. PRESETS & SYSTEM VIEW -->
+    <section class="view-page" id="view-system">
+      <div class="system-grid">
+        
+        <!-- PRESETS CARD -->
+        <div class="detail-card">
+          <div class="card-title-row">
+            <div class="card-title">USER PRESETS MEMORY</div>
+          </div>
+          <div id="presets-list">
+            <!-- 5 Presets generated by JS -->
+          </div>
+        </div>
+
+        <!-- HARDWARE LCD SCREEN CONTROL -->
+        <div class="detail-card">
+          <div class="card-title-row">
+            <div class="card-title">HARDWARE LCD & DISPLAY</div>
+          </div>
+          <div class="param-grid" style="grid-template-columns: 1fr;">
+            <div class="param-item">
+              <div style="display:flex; justify-content:space-between;">
+                <label>LCD BACKLIGHT BRIGHTNESS</label>
+                <span id="lcd-br-val" style="font-family:var(--font-mono); font-weight:800; color:var(--cyan);">80%</span>
+              </div>
+              <input type="range" id="lcd-br-slider" min="10" max="100" value="80" oninput="onLcdBrightness(this.value)">
+            </div>
+            <div class="param-item">
+              <label>LCD AUTO-OFF TIMEOUT</label>
+              <select class="select-ctl" id="lcd-timeout-sel" onchange="onLcdTimeout(this.value)">
+                <option value="0">ALWAYS ON (No Sleep)</option>
+                <option value="1">1 MINUTE</option>
+                <option value="2">2 MINUTES (Default)</option>
+                <option value="5">5 MINUTES</option>
+                <option value="10">10 MINUTES</option>
+                <option value="15">15 MINUTES</option>
+                <option value="30">30 MINUTES</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- WI-FI & NETWORK CARD -->
+        <div class="detail-card">
+          <div class="card-title-row">
+            <div class="card-title">NETWORK & WI-FI CONFIG</div>
+          </div>
+          <div class="param-grid" style="grid-template-columns: 1fr;">
+            <div class="param-item">
+              <label>WI-FI RADIO ENABLE</label>
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" id="wifi-on-toggle" onchange="onWifiToggle(this.checked)">
+                  <span class="slider-toggle"></span>
+                </div>
+                <span id="wifi-state-text">ENABLED</span>
+              </label>
+            </div>
+            <div class="param-item">
+              <label>WI-FI MODE</label>
+              <select class="select-ctl" id="wifi-mode-sel" onchange="onWifiMode(this.value)">
+                <option value="AP">ACCESS POINT (Standalone Hotspot)</option>
+                <option value="CLIENT">CLIENT (Join Existing Network)</option>
+              </select>
+            </div>
+            <div class="param-item">
+              <label>WI-FI PASSWORD (Min 8 chars for WPA2)</label>
+              <input type="text" class="input-num" id="wifi-pw-input" placeholder="Password..." onchange="onWifiPw(this.value)">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    /* ==========================================================================
+       DLMS 2x4 PRO — Web Audio Console Client
+       Full Two-Way Bidirectional Realtime Sync with LCD Hardware
+       ========================================================================== */
+
+    let gState = null;
+    let ws = null;
+    let reconnectInterval = null;
+    let currentTab = 'dashboard';
+    let activeChType = 'in'; // 'in' or 'out'
+    let activeChIdx = 0;
+
+    const PEQ_COLORS = [
+      '#00e5ff', '#ff9100', '#ffd600', '#00e676', '#ff1744',
+      '#7c4dff', '#00b0ff', '#ff3d00', '#ffea00', '#00e676',
+      '#d500f9', '#1de9b6', '#ff5252', '#651fff', '#304ffe'
+    ];
+
+    const FT_NAMES = ["OFF", "BW 12dB", "BW 18dB", "BW 24dB", "LR 12dB", "LR 24dB"];
+    const PEQ_TYPES = ["BELL (PEQ)", "LOW SHELF", "HIGH SHELF", "NOTCH", "ALLPASS", "LOWPASS", "HIGHPASS"];
+    const SUBSONIC_FREQS = [0, 20, 25, 30, 40, 50, 60, 80, 100, 120, 150, 200];
+
+    // ==========================================
+    // INITIALIZATION & TAB NAVIGATION
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initTabs();
+      initRtaCanvas();
+      connectWebSocket();
+      fetchInitialState();
+    });
+
+    function initTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const target = btn.dataset.view;
+          currentTab = target;
+
+          document.querySelectorAll('.view-page').forEach(p => p.classList.remove('active'));
+
+          if (target === 'dashboard') {
+            document.getElementById('view-dashboard').classList.add('active');
+            renderDashboard();
+          } else if (target === 'system') {
+            document.getElementById('view-system').classList.add('active');
+            renderSystem();
+          } else if (target.startsWith('in-') || target.startsWith('out-')) {
+            const parts = target.split('-');
+            activeChType = parts[0];
+            activeChIdx = parseInt(parts[1]);
+            document.getElementById('view-channel-detail').classList.add('active');
+            renderChannelDetail();
           }
-          activeTab = target;
         });
       });
     }
 
-    // NETWORKING
-    function connectWS() {
-      if (ws) { ws.close(); }
-      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-      ws = new WebSocket(`${protocol}//${location.host}/ws`);
+    function selectTab(viewTarget) {
+      const btn = document.querySelector(`.tab-btn[data-view="${viewTarget}"]`);
+      if (btn) btn.click();
+    }
+
+    // ==========================================
+    // WEBSOCKET COMMUNICATIONS
+    // ==========================================
+    function connectWebSocket() {
+      if (ws) {
+        try { ws.close(); } catch(e){}
+      }
+      const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${location.host}/ws`;
+
+      ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        document.getElementById('ws-status').textContent = 'CONNECTED';
-        document.getElementById('ws-status').className = 'status-badge connected';
-        if (reconnectTimer) clearInterval(reconnectTimer);
+        const badge = document.getElementById('ws-badge');
+        badge.className = 'badge connected';
+        document.getElementById('ws-text').textContent = 'CONNECTED';
+        if (reconnectInterval) { clearInterval(reconnectInterval); reconnectInterval = null; }
+        // Request state
+        ws.send(JSON.stringify({ type: 'get_state' }));
       };
 
       ws.onclose = () => {
-        document.getElementById('ws-status').textContent = 'DISCONNECTED';
-        document.getElementById('ws-status').className = 'status-badge disconnected';
-        if (!reconnectTimer) reconnectTimer = setInterval(connectWS, 2000);
+        const badge = document.getElementById('ws-badge');
+        badge.className = 'badge disconnected';
+        document.getElementById('ws-text').textContent = 'DISCONNECTED';
+        if (!reconnectInterval) {
+          reconnectInterval = setInterval(connectWebSocket, 1500);
+        }
+      };
+
+      ws.onerror = (e) => {
+        console.warn("WebSocket error:", e);
       };
 
       ws.onmessage = (e) => {
         try {
-          const data = JSON.parse(e.data);
-          if (data.type === 'full_state') {
-            state = data;
-            renderAll();
-          } else if (data.type === 'meter') {
-            updateMeters(data.vu);
-          }
-        } catch (err) { console.error("WS Parse error", err); }
+          const msg = JSON.parse(e.data);
+          handleWsMessage(msg);
+        } catch (err) {
+          console.error("JSON parse error:", err);
+        }
       };
     }
 
-    async function fetchState() {
+    async function fetchInitialState() {
       try {
-        const res = await fetch('/api/state');
-        state = await res.json();
-        document.getElementById('device-name').textContent = state.device;
-        document.getElementById('fw-version').textContent = 'v' + state.firmware;
-        renderAll();
-      } catch (err) { console.error("Fetch state error", err); }
+        const r = await fetch('/api/state');
+        if (r.ok) {
+          const data = await r.json();
+          gState = data;
+          updateStaticHeader();
+          renderActiveView();
+        }
+      } catch (e) {
+        console.log("Waiting for WebSocket state...", e);
+      }
     }
 
-    async function pushStateUpdate(updates) {
+    function handleWsMessage(msg) {
+      if (msg.type === 'full_state' || msg.type === 'hello') {
+        gState = msg;
+        updateStaticHeader();
+        renderActiveView();
+      } else if (msg.type === 'change') {
+        // Granular update from hardware LCD or another client!
+        applyPathChange(msg.path, msg.value);
+      } else if (msg.type === 'meter') {
+        // Live meter update: vu[6], pre[6], gr[6], rta[32]
+        renderLiveMeters(msg);
+      }
+    }
+
+    function updateStaticHeader() {
+      if (!gState) return;
+      if (gState.device) document.getElementById('device-title').textContent = gState.device;
+      if (gState.sampleRate) document.getElementById('fs-text').textContent = `${Math.round(gState.sampleRate / 1000)} kHz`;
+      if (gState.ip) document.getElementById('ip-text').textContent = gState.ip;
+    }
+
+    // ==========================================
+    // DISPATCHING VALUE CHANGES TO ESP32
+    // ==========================================
+    function setPath(path, value) {
+      // 1. Update local cache immediately
+      applyPathChange(path, value);
+
+      // 2. Send via WebSocket for zero latency
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'set',
+          path: path,
+          value: parseFloat(value)
+        }));
+      }
+    }
+
+    function applyPathChange(path, value) {
+      if (!gState) return;
+      const parts = path.split('.');
+      if (parts[0] === 'system') {
+        if (parts[1] === 'brightness') gState.brightness = value;
+        else if (parts[1] === 'lcdTimeout') gState.lcdTimeout = value;
+      } else if (parts[0] === 'ins' || parts[0] === 'outs') {
+        const arr = parts[0] === 'ins' ? gState.ins : gState.outs;
+        const chIdx = parseInt(parts[1]);
+        if (!arr || !arr[chIdx]) return;
+        const ch = arr[chIdx];
+        
+        if (parts[2] === 'gain') ch.gain = value;
+        else if (parts[2] === 'mute') ch.mute = (value > 0.5);
+        else if (parts[2] === 'invert') ch.invert = (value > 0.5);
+        else if (parts[2] === 'delay') ch.delay = value;
+        else if (parts[2] === 'subsonic') ch.subsonic = value;
+        else if (parts[2] === 'peqOn') ch.peqOn = (value > 0.5);
+        else if (parts[2] === 'srcIn1') ch.srcIn1 = (value > 0.5);
+        else if (parts[2] === 'srcIn2') ch.srcIn2 = (value > 0.5);
+        else if (parts[2] === 'peq' && parts[4]) {
+          const bIdx = parseInt(parts[3]);
+          if (ch.peq && ch.peq[bIdx]) {
+            ch.peq[bIdx][parts[4]] = (parts[4] === 'on') ? (value > 0.5) : value;
+          }
+        } else if (parts[2] === 'gate' && parts[3]) {
+          ch.gate[parts[3]] = (parts[3] === 'on') ? (value > 0.5) : value;
+        } else if (parts[2] === 'lim' && parts[3]) {
+          ch.lim[parts[3]] = (parts[3] === 'on') ? (value > 0.5) : value;
+        } else if (parts[2] === 'xover' && parts[4]) {
+          const sec = parts[3]; // 'hp' or 'lp'
+          ch.xover[sec][parts[4]] = (parts[4] === 'on') ? (value > 0.5) : value;
+        }
+      }
+
+      // Sync active view UI elements without disrupting active focus
+      syncUiElements(path, value);
+    }
+
+    function syncUiElements(path, value) {
+      // Sync Dashboard elements
+      if (currentTab === 'dashboard') {
+        const parts = path.split('.');
+        if (parts[0] === 'ins' || parts[0] === 'outs') {
+          const type = parts[0] === 'ins' ? 'in' : 'out';
+          const idx = parts[1];
+          const prop = parts[2];
+          if (prop === 'gain') {
+            const sl = document.getElementById(`dash-gain-sl-${type}-${idx}`);
+            const num = document.getElementById(`dash-gain-val-${type}-${idx}`);
+            if (sl && document.activeElement !== sl) sl.value = value;
+            if (num) num.textContent = `${value >= 0 ? '+' : ''}${parseFloat(value).toFixed(1)} dB`;
+          } else if (prop === 'mute') {
+            const btn = document.getElementById(`dash-mute-${type}-${idx}`);
+            if (btn) {
+              btn.className = `btn-pill ${value > 0.5 ? 'muted' : ''}`;
+              btn.textContent = value > 0.5 ? 'MUTED' : 'MUTE';
+            }
+          } else if (prop === 'invert') {
+            const btn = document.getElementById(`dash-phase-${type}-${idx}`);
+            if (btn) {
+              btn.className = `btn-pill ${value > 0.5 ? 'inverted' : ''}`;
+              btn.textContent = value > 0.5 ? '180°' : '0°';
+            }
+          }
+        }
+      } else if (currentTab.startsWith('in-') || currentTab.startsWith('out-')) {
+        // If we are on detail page, re-render curves or active inputs if not focused
+        if (path.includes('peq') && typeof drawPeqCurve === 'function') drawPeqCurve();
+        if (path.includes('xover') && typeof drawXoverCurve === 'function') drawXoverCurve();
+      }
+    }
+
+    function renderActiveView() {
+      if (currentTab === 'dashboard') renderDashboard();
+      else if (currentTab === 'system') renderSystem();
+      else renderChannelDetail();
+    }
+
+    // ==========================================
+    // VIEW 1: DASHBOARD RENDERER
+    // ==========================================
+    function renderDashboard() {
+      if (!gState) return;
+      const c = document.getElementById('strips-container');
+      c.innerHTML = '';
+
+      // 2 Inputs
+      for (let i = 0; i < 2; i++) {
+        c.appendChild(createChannelStrip('in', i, gState.ins[i]));
+      }
+      // 4 Outputs
+      for (let i = 0; i < 4; i++) {
+        c.appendChild(createChannelStrip('out', i, gState.outs[i]));
+      }
+    }
+
+    function createChannelStrip(type, idx, ch) {
+      const card = document.createElement('div');
+      card.className = `strip-card ${type}-strip`;
+
+      let routeText = '';
+      if (type === 'out') {
+        if (ch.srcIn1 && ch.srcIn2) routeText = 'IN 1+2 (L+R)';
+        else if (ch.srcIn1) routeText = 'IN 1 (L)';
+        else if (ch.srcIn2) routeText = 'IN 2 (R)';
+        else routeText = 'NONE';
+      }
+
+      card.innerHTML = `
+        <div class="strip-header">
+          <span class="strip-name" style="color: ${type === 'in' ? 'var(--cyan)' : 'var(--orange)'}">
+            ${type.toUpperCase()} ${idx + 1}
+          </span>
+          ${type === 'out' ? `<span class="strip-route-badge">${routeText}</span>` : `<span class="strip-route-badge" style="color:var(--text-dim)">ADC IN</span>`}
+        </div>
+
+        <div class="strip-body">
+          
+          <!-- METERS (PRE, POST, GR) -->
+          <div class="meters-row">
+            <!-- PRE VU -->
+            <div class="meter-col">
+              <span class="meter-caption">PRE</span>
+              <div class="meter-track">
+                <div class="meter-bar" id="m-bar-pre-${type}-${idx}"></div>
+                <div class="meter-peak-line" id="m-peak-pre-${type}-${idx}"></div>
+              </div>
+              <span class="meter-db-readout" id="m-val-pre-${type}-${idx}">-80</span>
+            </div>
+
+            <!-- POST VU -->
+            <div class="meter-col">
+              <span class="meter-caption">POST</span>
+              <div class="meter-track">
+                <div class="meter-bar" id="m-bar-post-${type}-${idx}"></div>
+                <div class="meter-peak-line" id="m-peak-post-${type}-${idx}"></div>
+              </div>
+              <span class="meter-db-readout" id="m-val-post-${type}-${idx}">-80</span>
+            </div>
+
+            <!-- LIMITER GR -->
+            <div class="meter-col">
+              <span class="meter-caption">GR</span>
+              <div class="meter-gr-track">
+                <div class="meter-gr-bar" id="m-bar-gr-${type}-${idx}"></div>
+              </div>
+              <div class="gr-led" id="m-led-gr-${type}-${idx}"></div>
+              <span class="meter-db-readout" id="m-val-gr-${type}-${idx}">0</span>
+            </div>
+          </div>
+
+          <!-- GAIN FADER -->
+          <div class="gain-ctl-wrap">
+            <div class="gain-head">
+              <span style="font-size:10px; color:var(--text-muted); font-weight:700;">GAIN</span>
+              <span class="gain-val-badge" id="dash-gain-val-${type}-${idx}">
+                ${ch.gain >= 0 ? '+' : ''}${ch.gain.toFixed(1)} dB
+              </span>
+            </div>
+            <div class="slider-row">
+              <button class="btn-step" onclick="stepGain('${type}', ${idx}, -0.5)">-</button>
+              <input type="range" min="-60" max="12" step="0.5" value="${ch.gain}"
+                     id="dash-gain-sl-${type}-${idx}"
+                     oninput="onGainSlider('${type}', ${idx}, this.value)">
+              <button class="btn-step" onclick="stepGain('${type}', ${idx}, 0.5)">+</button>
+            </div>
+          </div>
+
+          <!-- DSP ACTIVE CHIPS -->
+          <div class="dsp-chips">
+            <span class="chip ${ch.subsonic > 0 ? (type === 'in' ? 'active' : 'active out-chip') : ''}">SUB</span>
+            <span class="chip ${ch.gate && ch.gate.on ? (type === 'in' ? 'active' : 'active out-chip') : ''}">GATE</span>
+            <span class="chip ${ch.peqOn ? (type === 'in' ? 'active' : 'active out-chip') : ''}">PEQ</span>
+            ${type === 'out' ? `<span class="chip ${ch.xover && (ch.xover.hp.on || ch.xover.lp.on) ? 'active out-chip' : ''}">XOVER</span>` : ''}
+            <span class="chip ${ch.lim && ch.lim.on ? (type === 'in' ? 'active' : 'active out-chip') : ''}">LIM</span>
+            <span class="chip ${ch.delay > 0 ? (type === 'in' ? 'active' : 'active out-chip') : ''}">DLY</span>
+          </div>
+
+          <!-- MUTE & PHASE PILLS -->
+          <div class="strip-actions">
+            <button class="btn-pill ${ch.mute ? 'muted' : ''}" id="dash-mute-${type}-${idx}"
+                    onclick="toggleMute('${type}', ${idx})">
+              ${ch.mute ? 'MUTED' : 'MUTE'}
+            </button>
+            <button class="btn-pill ${ch.invert ? 'inverted' : ''}" id="dash-phase-${type}-${idx}"
+                    onclick="togglePhase('${type}', ${idx})">
+              ${ch.invert ? '180°' : '0°'}
+            </button>
+
+            <!-- EDIT DETAIL BUTTON -->
+            <button class="btn-edit-ch" onclick="selectTab('${type}-${idx}')">
+              EDIT DSP &rsaquo;
+            </button>
+          </div>
+
+        </div>
+      `;
+
+      return card;
+    }
+
+    function onGainSlider(type, idx, val) {
+      const path = `${type}s.${idx}.gain`;
+      document.getElementById(`dash-gain-val-${type}-${idx}`).textContent = `${val >= 0 ? '+' : ''}${parseFloat(val).toFixed(1)} dB`;
+      setPath(path, val);
+    }
+
+    function stepGain(type, idx, delta) {
+      const arr = type === 'in' ? gState.ins : gState.outs;
+      let val = Math.round((arr[idx].gain + delta) * 10) / 10;
+      if (val < -60) val = -60;
+      if (val > 12) val = 12;
+      const path = `${type}s.${idx}.gain`;
+      setPath(path, val);
+    }
+
+    function toggleMute(type, idx) {
+      const arr = type === 'in' ? gState.ins : gState.outs;
+      const newVal = !arr[idx].mute;
+      setPath(`${type}s.${idx}.mute`, newVal ? 1 : 0);
+    }
+
+    function togglePhase(type, idx) {
+      const arr = type === 'in' ? gState.ins : gState.outs;
+      const newVal = !arr[idx].invert;
+      setPath(`${type}s.${idx}.invert`, newVal ? 1 : 0);
+    }
+
+    // ==========================================
+    // VIEW 2: CHANNEL DETAIL VIEW (INPUT & OUTPUT)
+    // ==========================================
+    function renderChannelDetail() {
+      if (!gState) return;
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      if (!ch) return;
+
+      const container = document.getElementById('channel-detail-body');
+      container.innerHTML = '';
+
+      // --- SECTION 1: MASTER STRIP & ROUTING & DELAY ---
+      const topCard = document.createElement('div');
+      topCard.className = 'detail-card';
+      topCard.innerHTML = `
+        <div class="card-title-row">
+          <div class="card-title" style="color:${activeChType === 'in' ? 'var(--cyan)' : 'var(--orange)'}">
+            ${activeChType.toUpperCase()} ${activeChIdx + 1} — ${ch.name}
+          </div>
+          <div class="card-actions">
+            <button class="btn-pill ${ch.mute ? 'muted' : ''}" onclick="toggleMute('${activeChType}', ${activeChIdx})">
+              ${ch.mute ? 'MUTED' : 'MUTE'}
+            </button>
+            <button class="btn-pill ${ch.invert ? 'inverted' : ''}" onclick="togglePhase('${activeChType}', ${activeChIdx})">
+              ${ch.invert ? 'PHASE 180°' : 'PHASE 0°'}
+            </button>
+          </div>
+        </div>
+
+        <div class="param-grid">
+          <!-- Channel Gain -->
+          <div class="param-item">
+            <label>CHANNEL GAIN</label>
+            <div class="param-control">
+              <input type="number" class="input-num" min="-60" max="12" step="0.5" value="${ch.gain}"
+                     onchange="setPath('${activeChType}s.${activeChIdx}.gain', this.value)">
+              <span style="font-family:var(--font-mono); color:var(--text-dim)">dB</span>
+            </div>
+          </div>
+
+          <!-- Delay -->
+          <div class="param-item">
+            <label>DELAY TIME</label>
+            <div class="param-control">
+              <input type="number" class="input-num" min="0" max="300" step="0.1" value="${ch.delay.toFixed(1)}"
+                     onchange="setPath('${activeChType}s.${activeChIdx}.delay', this.value)">
+              <span style="font-family:var(--font-mono); color:var(--text-dim)">ms</span>
+            </div>
+            <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim); margin-top:2px;">
+              ${(ch.delay * 0.343).toFixed(2)} m / ${(ch.delay * 1.1253).toFixed(2)} ft
+            </div>
+          </div>
+
+          <!-- Subsonic Low Cut -->
+          <div class="param-item">
+            <label>SUBSONIC (HPF LOW-CUT)</label>
+            <select class="select-ctl" onchange="setPath('${activeChType}s.${activeChIdx}.subsonic', this.value)">
+              ${SUBSONIC_FREQS.map(f => `<option value="${f}" ${ch.subsonic == f ? 'selected' : ''}>${f === 0 ? 'OFF (Flat)' : f + ' Hz'}</option>`).join('')}
+            </select>
+          </div>
+
+          <!-- Output Routing (Only for Outputs) -->
+          ${activeChType === 'out' ? `
+          <div class="param-item">
+            <label>SOURCE ROUTING</label>
+            <select class="select-ctl" onchange="onRoutingSelect(${activeChIdx}, this.value)">
+              <option value="none" ${!ch.srcIn1 && !ch.srcIn2 ? 'selected' : ''}>NONE (Muted)</option>
+              <option value="in1" ${ch.srcIn1 && !ch.srcIn2 ? 'selected' : ''}>IN 1 (Left Channel)</option>
+              <option value="in2" ${!ch.srcIn1 && ch.srcIn2 ? 'selected' : ''}>IN 2 (Right Channel)</option>
+              <option value="both" ${ch.srcIn1 && ch.srcIn2 ? 'selected' : ''}>IN 1 + 2 (Stereo Sum L+R)</option>
+            </select>
+          </div>
+          <div class="param-item">
+            <label>COPY TO CHANNEL</label>
+            <div class="param-control">
+              <select class="select-ctl" id="copy-dst-sel">
+                <option value="2">OUT 1</option>
+                <option value="3">OUT 2</option>
+                <option value="4">OUT 3</option>
+                <option value="5">OUT 4</option>
+              </select>
+              <button class="btn-action" onclick="execCopyChannel()">COPY</button>
+            </div>
+          </div>
+          ` : ''}
+        </div>
+      `;
+      container.appendChild(topCard);
+
+      // --- SECTION 2: CROSSOVER (OUT ONLY) ---
+      if (activeChType === 'out') {
+        const xoverCard = document.createElement('div');
+        xoverCard.className = 'detail-card';
+        xoverCard.innerHTML = `
+          <div class="card-title-row">
+            <div class="card-title">CROSSOVER FILTER (X-OVER)</div>
+          </div>
+
+          <!-- X-OVER GRAPH -->
+          <div class="graph-box">
+            <canvas id="xover-canvas" class="graph-canvas"></canvas>
+          </div>
+
+          <div class="param-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+            <!-- HPF -->
+            <div class="param-item" style="border-left: 3px solid var(--green);">
+              <label style="color:var(--green)">HIGH-PASS FILTER (HPF)</label>
+              <div style="display:flex; gap:6px; margin: 4px 0;">
+                <label class="switch-label">
+                  <div class="switch">
+                    <input type="checkbox" ${ch.xover.hp.on ? 'checked' : ''}
+                           onchange="setPath('outs.${activeChIdx}.xover.hp.on', this.checked ? 1 : 0)">
+                    <span class="slider-toggle"></span>
+                  </div>
+                  <span>${ch.xover.hp.on ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+              <div class="param-control">
+                <label style="width:50px">FREQ:</label>
+                <input type="number" class="input-num" min="20" max="20000" step="1" value="${ch.xover.hp.f}"
+                       onchange="setPath('outs.${activeChIdx}.xover.hp.f', this.value)">
+                <span>Hz</span>
+              </div>
+              <div class="param-control" style="margin-top:6px;">
+                <label style="width:50px">SLOPE:</label>
+                <select class="select-ctl" onchange="onXoverSlope('hp', this.value)">
+                  <option value="0" ${ch.xover.hp.type == 0 ? 'selected' : ''}>OFF</option>
+                  <option value="1" ${ch.xover.hp.type == 1 ? 'selected' : ''}>BW 12dB/oct</option>
+                  <option value="2" ${ch.xover.hp.type == 2 ? 'selected' : ''}>BW 18dB/oct</option>
+                  <option value="3" ${ch.xover.hp.type == 3 ? 'selected' : ''}>BW 24dB/oct</option>
+                  <option value="4" ${ch.xover.hp.type == 4 ? 'selected' : ''}>LR 12dB/oct</option>
+                  <option value="5" ${ch.xover.hp.type == 5 ? 'selected' : ''}>LR 24dB/oct</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- LPF -->
+            <div class="param-item" style="border-left: 3px solid var(--orange);">
+              <label style="color:var(--orange)">LOW-PASS FILTER (LPF)</label>
+              <div style="display:flex; gap:6px; margin: 4px 0;">
+                <label class="switch-label">
+                  <div class="switch">
+                    <input type="checkbox" ${ch.xover.lp.on ? 'checked' : ''}
+                           onchange="setPath('outs.${activeChIdx}.xover.lp.on', this.checked ? 1 : 0)">
+                    <span class="slider-toggle"></span>
+                  </div>
+                  <span>${ch.xover.lp.on ? 'ON' : 'OFF'}</span>
+                </label>
+              </div>
+              <div class="param-control">
+                <label style="width:50px">FREQ:</label>
+                <input type="number" class="input-num" min="20" max="20000" step="1" value="${ch.xover.lp.f}"
+                       onchange="setPath('outs.${activeChIdx}.xover.lp.f', this.value)">
+                <span>Hz</span>
+              </div>
+              <div class="param-control" style="margin-top:6px;">
+                <label style="width:50px">SLOPE:</label>
+                <select class="select-ctl" onchange="onXoverSlope('lp', this.value)">
+                  <option value="0" ${ch.xover.lp.type == 0 ? 'selected' : ''}>OFF</option>
+                  <option value="1" ${ch.xover.lp.type == 1 ? 'selected' : ''}>BW 12dB/oct</option>
+                  <option value="2" ${ch.xover.lp.type == 2 ? 'selected' : ''}>BW 18dB/oct</option>
+                  <option value="3" ${ch.xover.lp.type == 3 ? 'selected' : ''}>BW 24dB/oct</option>
+                  <option value="4" ${ch.xover.lp.type == 4 ? 'selected' : ''}>LR 12dB/oct</option>
+                  <option value="5" ${ch.xover.lp.type == 5 ? 'selected' : ''}>LR 24dB/oct</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(xoverCard);
+      }
+
+      // --- SECTION 3: PARAMETRIC EQ ---
+      const peqCard = document.createElement('div');
+      peqCard.className = 'detail-card';
+      peqCard.innerHTML = `
+        <div class="card-title-row">
+          <div class="card-title">
+            <span>PARAMETRIC EQUALIZER (${ch.peq.length} BANDS)</span>
+            <label class="switch-label" style="margin-left:14px;">
+              <div class="switch">
+                <input type="checkbox" ${ch.peqOn ? 'checked' : ''}
+                       onchange="setPath('${activeChType}s.${activeChIdx}.peqOn', this.checked ? 1 : 0)">
+                <span class="slider-toggle"></span>
+              </div>
+              <span>${ch.peqOn ? 'ACTIVE' : 'BYPASS'}</span>
+            </label>
+          </div>
+          <button class="btn-action" onclick="resetPeqFlat()">FLAT ALL BANDS</button>
+        </div>
+
+        <!-- PEQ GRAPH -->
+        <div class="graph-box">
+          <canvas id="peq-canvas" class="graph-canvas"></canvas>
+        </div>
+
+        <!-- PEQ BANDS TABLE -->
+        <div class="peq-table-wrap">
+          <table class="peq-table">
+            <thead>
+              <tr>
+                <th style="width:40px">BAND</th>
+                <th style="width:50px">STATE</th>
+                <th>FREQUENCY (Hz)</th>
+                <th>GAIN (dB)</th>
+                <th>Q FACTOR</th>
+                <th>FILTER TYPE</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${ch.peq.map((b, i) => `
+                <tr>
+                  <td>
+                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${PEQ_COLORS[i % PEQ_COLORS.length]}; margin-right:4px;"></span>
+                    ${i + 1}
+                  </td>
+                  <td>
+                    <input type="checkbox" ${b.on ? 'checked' : ''}
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.on', this.checked ? 1 : 0)">
+                  </td>
+                  <td>
+                    <input type="number" class="input-num" min="20" max="20000" step="1" value="${b.f}" style="width:90px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.f', this.value)">
+                  </td>
+                  <td>
+                    <input type="number" class="input-num" min="-24" max="24" step="0.5" value="${b.g}" style="width:75px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.g', this.value)">
+                  </td>
+                  <td>
+                    <input type="number" class="input-num" min="0.3" max="20" step="0.1" value="${b.q}" style="width:75px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.q', this.value)">
+                  </td>
+                  <td>
+                    <select class="select-ctl" style="width:130px" onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.type', this.value)">
+                      ${PEQ_TYPES.map((t, ti) => `<option value="${ti}" ${b.type == ti ? 'selected' : ''}>${t}</option>`).join('')}
+                    </select>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      container.appendChild(peqCard);
+
+      // --- SECTION 4: NOISE GATE & LIMITER DYNAMICS ---
+      const dynCard = document.createElement('div');
+      dynCard.className = 'detail-card';
+      dynCard.innerHTML = `
+        <div class="card-title-row">
+          <div class="card-title">DYNAMICS PROCESSORS</div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap:14px;">
+          
+          <!-- NOISE GATE -->
+          <div class="param-item" style="border-top:3px solid var(--blue)">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-family:var(--font-mono); font-weight:800; color:#fff;">NOISE GATE</span>
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" ${ch.gate.on ? 'checked' : ''}
+                         onchange="setPath('${activeChType}s.${activeChIdx}.gate.on', this.checked ? 1 : 0)">
+                  <span class="slider-toggle"></span>
+                </div>
+                <span>${ch.gate.on ? 'ON' : 'OFF'}</span>
+              </label>
+            </div>
+            <div class="param-grid">
+              <div class="param-item">
+                <label>THRESHOLD (dB)</label>
+                <input type="number" class="input-num" min="-80" max="0" step="1" value="${ch.gate.thr}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.thr', this.value)">
+              </div>
+              <div class="param-item">
+                <label>DEPTH (dB)</label>
+                <input type="number" class="input-num" min="-80" max="0" step="1" value="${ch.gate.depth}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.depth', this.value)">
+              </div>
+              <div class="param-item">
+                <label>ATTACK (ms)</label>
+                <input type="number" class="input-num" min="0.1" max="100" step="0.5" value="${ch.gate.attack}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.attack', this.value)">
+              </div>
+              <div class="param-item">
+                <label>HOLD (ms)</label>
+                <input type="number" class="input-num" min="0" max="2000" step="5" value="${ch.gate.hold}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.hold', this.value)">
+              </div>
+              <div class="param-item">
+                <label>RELEASE (ms)</label>
+                <input type="number" class="input-num" min="10" max="5000" step="10" value="${ch.gate.release}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.release', this.value)">
+              </div>
+            </div>
+          </div>
+
+          <!-- LIMITER -->
+          <div class="param-item" style="border-top:3px solid var(--red)">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+              <span style="font-family:var(--font-mono); font-weight:800; color:#fff;">PEAK LIMITER</span>
+              <label class="switch-label">
+                <div class="switch">
+                  <input type="checkbox" ${ch.lim.on ? 'checked' : ''}
+                         onchange="setPath('${activeChType}s.${activeChIdx}.lim.on', this.checked ? 1 : 0)">
+                  <span class="slider-toggle"></span>
+                </div>
+                <span>${ch.lim.on ? 'ON' : 'OFF'}</span>
+              </label>
+            </div>
+            <div class="param-grid">
+              <div class="param-item">
+                <label>THRESHOLD (dB)</label>
+                <input type="number" class="input-num" min="-40" max="12" step="0.5" value="${ch.lim.thr}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.lim.thr', this.value)">
+              </div>
+              <div class="param-item">
+                <label>RATIO</label>
+                <select class="select-ctl" onchange="setPath('${activeChType}s.${activeChIdx}.lim.ratio', this.value)">
+                  ${[1.0, 1.5, 2.0, 3.0, 4.0, 6.0, 8.0, 10.0, 20.0, 100.0].map(r => `
+                    <option value="${r}" ${Math.abs(ch.lim.ratio - r) < 0.1 ? 'selected' : ''}>
+                      ${r >= 100 ? 'INF:1 (Brickwall)' : r.toFixed(1) + ':1'}
+                    </option>
+                  `).join('')}
+                </select>
+              </div>
+              <div class="param-item">
+                <label>ATTACK (ms)</label>
+                <input type="number" class="input-num" min="1" max="200" step="1" value="${ch.lim.attack}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.lim.attack', this.value)">
+              </div>
+              <div class="param-item">
+                <label>RELEASE (ms)</label>
+                <input type="number" class="input-num" min="10" max="2000" step="10" value="${ch.lim.release}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.lim.release', this.value)">
+              </div>
+              <div class="param-item">
+                <label>KNEE (dB)</label>
+                <input type="number" class="input-num" min="0" max="24" step="0.5" value="${ch.lim.knee}"
+                       onchange="setPath('${activeChType}s.${activeChIdx}.lim.knee', this.value)">
+              </div>
+            </div>
+          </div>
+
+        </div>
+      `;
+      container.appendChild(dynCard);
+
+      // Render Interactive Curves
+      setTimeout(() => {
+        if (activeChType === 'out') drawXoverCurve();
+        drawPeqCurve();
+      }, 20);
+    }
+
+    function onRoutingSelect(outIdx, val) {
+      if (val === 'none') {
+        setPath(`outs.${outIdx}.srcIn1`, 0);
+        setPath(`outs.${outIdx}.srcIn2`, 0);
+      } else if (val === 'in1') {
+        setPath(`outs.${outIdx}.srcIn1`, 1);
+        setPath(`outs.${outIdx}.srcIn2`, 0);
+      } else if (val === 'in2') {
+        setPath(`outs.${outIdx}.srcIn1`, 0);
+        setPath(`outs.${outIdx}.srcIn2`, 1);
+      } else if (val === 'both') {
+        setPath(`outs.${outIdx}.srcIn1`, 1);
+        setPath(`outs.${outIdx}.srcIn2`, 1);
+      }
+    }
+
+    function onXoverSlope(sec, val) {
+      const type = parseInt(val);
+      setPath(`outs.${activeChIdx}.xover.${sec}.type`, type);
+      let slope = 0;
+      if (type === 1 || type === 4) slope = 12;
+      else if (type === 2) slope = 18;
+      else if (type === 3 || type === 5) slope = 24;
+      setPath(`outs.${activeChIdx}.xover.${sec}.slope`, slope);
+    }
+
+    function resetPeqFlat() {
+      if (!confirm("Reset all PEQ bands to FLAT (0 dB)?")) return;
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      ch.peq.forEach((b, i) => {
+        setPath(`${activeChType}s.${activeChIdx}.peq.${i}.g`, 0);
+      });
+    }
+
+    function execCopyChannel() {
+      const dst = parseInt(document.getElementById('copy-dst-sel').value);
+      const src = activeChIdx + 2; // OUT channels are 2..5
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'copy_channel', src: src, dst: dst }));
+        alert(`Copied OUT ${activeChIdx + 1} to OUT ${dst - 1}!`);
+      }
+    }
+
+    // ==========================================
+    // VIEW 3: PRESETS & SYSTEM
+    // ==========================================
+    function renderSystem() {
+      if (!gState) return;
+      
+      // LCD controls
+      document.getElementById('lcd-br-val').textContent = `${gState.brightness}%`;
+      document.getElementById('lcd-br-slider').value = gState.brightness;
+      document.getElementById('lcd-timeout-sel').value = gState.lcdTimeout !== undefined ? gState.lcdTimeout : 2;
+
+      // WiFi controls
+      document.getElementById('wifi-on-toggle').checked = gState.wifiOn;
+      document.getElementById('wifi-state-text').textContent = gState.wifiOn ? 'ENABLED' : 'DISABLED';
+      document.getElementById('wifi-mode-sel').value = gState.wifiMode || 'AP';
+      document.getElementById('wifi-pw-input').value = gState.wifiPassword || '';
+
+      // Presets
+      const pl = document.getElementById('presets-list');
+      pl.innerHTML = '';
+      for (let s = 0; s < 5; s++) {
+        pl.innerHTML += `
+          <div class="preset-row">
+            <div class="preset-info">
+              <span style="color:var(--cyan)">SLOT ${s + 1}</span>
+              <span>Memory Preset ${s + 1}</span>
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button class="btn-action btn-save" onclick="savePresetSlot(${s})">SAVE TO SLOT</button>
+              <button class="btn-action" onclick="loadPresetSlot(${s})">RECALL / LOAD</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function onLcdBrightness(val) {
+      document.getElementById('lcd-br-val').textContent = `${val}%`;
+      setPath('system.brightness', val);
+    }
+
+    function onLcdTimeout(val) {
+      setPath('system.lcdTimeout', val);
+    }
+
+    function onWifiToggle(val) {
+      document.getElementById('wifi-state-text').textContent = val ? 'ENABLED' : 'DISABLED';
+      pushStateHttp({ wifiOn: val });
+    }
+
+    function onWifiMode(val) {
+      pushStateHttp({ wifiMode: val });
+    }
+
+    function onWifiPw(val) {
+      if (val.length < 8 && val.length > 0) {
+        alert("Wi-Fi password must be at least 8 characters (or empty for open)");
+        return;
+      }
+      pushStateHttp({ wifiPassword: val });
+    }
+
+    async function pushStateHttp(patch) {
       try {
         await fetch('/api/state', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updates)
+          body: JSON.stringify(patch)
         });
-      } catch (e) { console.error("Update failed", e); }
+      } catch(e) { console.error("HTTP State update fail", e); }
     }
 
-    // RENDER LOGIC
-    function renderAll() {
-      if (!state) return;
-      renderDashboard();
-      if (activeTab.startsWith('in') || activeTab.startsWith('out')) {
-        renderChannelView();
+    function savePresetSlot(slot) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'preset_save', slot: slot }));
+        alert(`Saved current DSP settings to Preset ${slot + 1}!`);
       }
     }
 
-    function renderDashboard() {
-      // METERS
-      const mContainer = document.getElementById('meters-view');
-      mContainer.innerHTML = '';
-      const labels = ['L', 'R', '01', '02', '03', '04'];
-      const colors = ['cyan', 'org', 'grn', 'grn', 'grn', 'grn'];
-
-      for (let i = 0; i < 6; i++) {
-        mContainer.innerHTML += `
-                    <div class="meter-group">
-                        <div class="meter-bar-container">
-                            <div class="meter-bar" id="vu-bar-${i}" style="height: 0%; background-color: var(--${colors[i]})"></div>
-                            <div class="meter-peak" id="vu-peak-${i}" style="bottom: 0%"></div>
-                        </div>
-                        <div class="meter-label" style="color: var(--${colors[i]})">${labels[i]}</div>
-                        <div class="meter-label" id="vu-val-${i}" style="font-size:12px; color:var(--gry);">-90</div>
-                    </div>
-                `;
-      }
-
-      // ROUTING
-      const rContainer = document.getElementById('routing-view');
-      rContainer.innerHTML = '';
-      for (let i = 0; i < 4; i++) {
-        const out = state.outs[i];
-        let src = 'NONE';
-        if (out.srcIn1 && out.srcIn2) src = 'IN 1 + IN 2';
-        else if (out.srcIn1) src = 'IN 1 (L)';
-        else if (out.srcIn2) src = 'IN 2 (R)';
-
-        rContainer.innerHTML += `
-                    <div class="control-group">
-                        <label>OUT ${i + 1} SOURCE</label>
-                        <select onchange="updateRouting(${i}, this.value)">
-                            <option value="0" ${!out.srcIn1 && !out.srcIn2 ? 'selected' : ''}>NONE</option>
-                            <option value="1" ${out.srcIn1 && !out.srcIn2 ? 'selected' : ''}>IN 1 (L)</option>
-                            <option value="2" ${!out.srcIn1 && out.srcIn2 ? 'selected' : ''}>IN 2 (R)</option>
-                            <option value="3" ${out.srcIn1 && out.srcIn2 ? 'selected' : ''}>IN 1 + IN 2</option>
-                        </select>
-                    </div>
-                `;
-      }
-    }
-
-    function updateMeters(vu) {
-      for (let i = 0; i < 6; i++) {
-        let db = vu[i];
-        if (db < -60) db = -60;
-        if (db > 12) db = 12;
-        const pct = ((db + 60) / 72) * 100;
-        const bar = document.getElementById(`vu-bar-${i}`);
-        if (bar) {
-          bar.style.height = `${pct}%`;
-          document.getElementById(`vu-val-${i}`).textContent = Math.round(db);
-
-          if (db > -3) bar.style.backgroundColor = 'var(--red)';
-          else if (db > -12) bar.style.backgroundColor = 'var(--yel)';
-          else {
-            const colors = ['cyan', 'org', 'grn', 'grn', 'grn', 'grn'];
-            bar.style.backgroundColor = `var(--${colors[i]})`;
-          }
-        }
-      }
-    }
-
-    function getActiveChannel() {
-      return activeChannelType === 'in' ? state.ins[activeChannelIdx] : state.outs[activeChannelIdx];
-    }
-
-    function renderChannelView() {
-      const ch = getActiveChannel();
-      if (!ch) return;
-
-      document.getElementById('cv-title').textContent = `${activeChannelType.toUpperCase()} ${activeChannelIdx + 1} - ${ch.name}`;
-
-      // BASIC
-      const muteBtn = document.getElementById('cv-mute');
-      muteBtn.textContent = ch.mute ? 'ON' : 'OFF';
-      muteBtn.className = `btn-toggle ${ch.mute ? 'active red' : ''}`;
-
-      document.getElementById('cv-gain').value = ch.gain;
-      document.getElementById('cv-delay').value = ch.delay;
-
-      if (activeChannelType === 'in') {
-        document.getElementById('cv-phase-group').style.display = 'none';
-        document.getElementById('cv-xover-card').style.display = 'none';
-      } else {
-        document.getElementById('cv-phase-group').style.display = 'flex';
-        document.getElementById('cv-xover-card').style.display = 'block';
-
-        const phaseBtn = document.getElementById('cv-phase');
-        phaseBtn.textContent = ch.invert ? '180°' : '0°';
-        phaseBtn.className = `btn-toggle ${ch.invert ? 'active org' : ''}`;
-
-        // XOVER
-        const hpBtn = document.getElementById('cv-hp-on');
-        hpBtn.textContent = ch.xover.hp.on ? 'ON' : 'OFF';
-        hpBtn.className = `btn-toggle ${ch.xover.hp.on ? 'active grn' : ''}`;
-        document.getElementById('cv-hp-f').value = ch.xover.hp.f;
-        document.getElementById('cv-hp-type').value = ch.xover.hp.type;
-
-        const lpBtn = document.getElementById('cv-lp-on');
-        lpBtn.textContent = ch.xover.lp.on ? 'ON' : 'OFF';
-        lpBtn.className = `btn-toggle ${ch.xover.lp.on ? 'active org' : ''}`;
-        document.getElementById('cv-lp-f').value = ch.xover.lp.f;
-        document.getElementById('cv-lp-type').value = ch.xover.lp.type;
-
-        drawXover(ch.xover);
-      }
-
-      // LIMITER
-      const limBtn = document.getElementById('cv-lim-on');
-      limBtn.textContent = ch.lim.on ? 'ON' : 'OFF';
-      limBtn.className = `btn-toggle ${ch.lim.on ? 'active org' : ''}`;
-      document.getElementById('cv-lim-thr').value = ch.lim.thr;
-      document.getElementById('cv-lim-att').value = ch.lim.attack;
-      document.getElementById('cv-lim-rel').value = ch.lim.release;
-
-      // PEQ
-      renderPeqTable(ch.peq);
-      drawPeq(ch.peq);
-    }
-
-    function renderPeqTable(peqs) {
-      const tbody = document.querySelector('#peq-table tbody');
-      tbody.innerHTML = '';
-      peqs.forEach((p, i) => {
-        tbody.innerHTML += `
-                    <tr>
-                        <td><div style="width:12px;height:12px;background:${PEQ_COLORS[i]};border-radius:50%;display:inline-block;margin-right:5px"></div> ${i + 1}</td>
-                        <td><input type="checkbox" ${p.on ? 'checked' : ''} onchange="updatePeq(${i}, 'on', this.checked)"></td>
-                        <td><input type="number" value="${p.f}" step="1" min="20" max="20000" style="width:70px" onchange="updatePeq(${i}, 'f', this.value)"></td>
-                        <td><input type="number" value="${p.g}" step="0.5" min="-24" max="24" style="width:60px" onchange="updatePeq(${i}, 'g', this.value)"></td>
-                        <td><input type="number" value="${p.q}" step="0.1" min="0.1" max="20" style="width:60px" onchange="updatePeq(${i}, 'q', this.value)"></td>
-                        <td>
-                            <select style="width:80px" onchange="updatePeq(${i}, 'type', this.value)">
-                                <option value="0" ${p.type == 0 ? 'selected' : ''}>BELL</option>
-                                <option value="1" ${p.type == 1 ? 'selected' : ''}>LSHELF</option>
-                                <option value="2" ${p.type == 2 ? 'selected' : ''}>HSHELF</option>
-                                <option value="3" ${p.type == 3 ? 'selected' : ''}>NOTCH</option>
-                                <option value="4" ${p.type == 4 ? 'selected' : ''}>ALLPASS</option>
-                                <option value="5" ${p.type == 5 ? 'selected' : ''}>LP</option>
-                                <option value="6" ${p.type == 6 ? 'selected' : ''}>HP</option>
-                            </select>
-                        </td>
-                    </tr>
-                `;
-      });
-    }
-
-    // ACTIONS
-    function updateRouting(outIdx, val) {
-      const v = parseInt(val);
-      const in1 = (v === 1 || v === 3);
-      const in2 = (v === 2 || v === 3);
-      state.outs[outIdx].srcIn1 = in1;
-      state.outs[outIdx].srcIn2 = in2;
-      pushStateUpdate({ outs: state.outs });
-      renderDashboard();
-    }
-
-    function toggleParam(param) {
-      const ch = getActiveChannel();
-      ch[param] = !ch[param];
-      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
-      pushStateUpdate(updates);
-      renderChannelView();
-    }
-
-    function updateParam(param, val) {
-      const ch = getActiveChannel();
-      ch[param] = parseFloat(val);
-      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
-      pushStateUpdate(updates);
-      renderChannelView();
-    }
-
-    function toggleXover(sec) {
-      const ch = getActiveChannel();
-      ch.xover[sec].on = !ch.xover[sec].on;
-      pushStateUpdate({ outs: state.outs });
-      renderChannelView();
-    }
-
-    function updateXover(sec, param, val) {
-      const ch = getActiveChannel();
-      ch.xover[sec][param] = parseFloat(val);
-      pushStateUpdate({ outs: state.outs });
-      renderChannelView();
-    }
-
-    function toggleLimiter() {
-      const ch = getActiveChannel();
-      ch.lim.on = !ch.lim.on;
-      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
-      pushStateUpdate(updates);
-      renderChannelView();
-    }
-    function updateLimiter(param, val) {
-      const ch = getActiveChannel();
-      ch.lim[param] = parseFloat(val);
-      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
-      pushStateUpdate(updates);
-    }
-
-    function updatePeq(idx, param, val) {
-      const ch = getActiveChannel();
-      if (param === 'on') ch.peq[idx][param] = val;
-      else ch.peq[idx][param] = parseFloat(val);
-      const updates = activeChannelType === 'in' ? { ins: state.ins } : { outs: state.outs };
-      pushStateUpdate(updates);
-      drawPeq(ch.peq);
-    }
-
-    // PRESETS
-    async function savePreset(slot) {
-      try {
-        // We'll send a custom JSON message over WS, or define a new endpoint.
-        // Since api_put handles standard state, let's use WS for commands.
-        if (ws && ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: 'preset_save', slot: slot }));
-          alert(`Saved to Preset ${slot + 1}`);
-        }
-      } catch (e) { }
-    }
-    async function loadPreset(slot) {
-      try {
+    function loadPresetSlot(slot) {
+      if (confirm(`Recall and load Preset ${slot + 1}?`)) {
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'preset_load', slot: slot }));
-          alert(`Loading Preset ${slot + 1}...`);
         }
-      } catch (e) { }
+      }
     }
 
-    // GRAPHS (Simplistic representation for UI)
-    function drawGrid(ctx, w, h) {
-      ctx.clearRect(0, 0, w, h);
-      ctx.strokeStyle = '#10344A';
-      ctx.lineWidth = 1;
+    function confirmResetAll() {
+      if (confirm("Reset ALL settings to factory FLAT default? (Audio will reset to 0dB bypass)")) {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: 'reset' }));
+        }
+      }
+    }
 
-      // dB lines
-      for (let db = -24; db <= 24; db += 12) {
-        const y = h / 2 - (db * (h / 48));
-        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
-        ctx.fillStyle = '#7891A0';
-        ctx.fillText(`${db}`, 5, y - 2);
+    // ==========================================
+    // REAL-TIME METERS & RTA CANVAS ENGINE
+    // ==========================================
+    let rtaCtx = null;
+    let rtaCanvas = null;
+
+    function initRtaCanvas() {
+      rtaCanvas = document.getElementById('rta-canvas');
+      if (rtaCanvas) {
+        rtaCtx = rtaCanvas.getContext('2d');
+        resizeCanvas(rtaCanvas);
+        window.addEventListener('resize', () => resizeCanvas(rtaCanvas));
+      }
+    }
+
+    function resizeCanvas(cvs) {
+      if (!cvs) return;
+      const dpr = window.devicePixelRatio || 1;
+      cvs.width = cvs.offsetWidth * dpr;
+      cvs.height = cvs.offsetHeight * dpr;
+      const ctx = cvs.getContext('2d');
+      ctx.scale(dpr, dpr);
+    }
+
+    function renderLiveMeters(data) {
+      // 1. RTA SPECTRUM
+      if (data.rta && rtaCtx && rtaCanvas) {
+        drawRtaBars(data.rta);
       }
 
-      // Freq lines (log scale)
-      const freqs = [20, 100, 1000, 10000, 20000];
+      // 2. DASHBOARD STRIP METERS
+      if (currentTab !== 'dashboard') return;
+
+      const vu = data.vu || [];
+      const pre = data.pre || [];
+      const gr = data.gr || [];
+
+      // Channel maps:
+      // IN1=0, IN2=1, OUT1=2, OUT2=3, OUT3=4, OUT4=5
+      for (let i = 0; i < 6; i++) {
+        const type = i < 2 ? 'in' : 'out';
+        const idx = i < 2 ? i : (i - 2);
+
+        // Pre-DSP VU
+        const preDb = pre[i] !== undefined ? pre[i] : -80;
+        const prePct = Math.max(0, Math.min(100, ((preDb + 60) / 72) * 100));
+        const preBar = document.getElementById(`m-bar-pre-${type}-${idx}`);
+        const preVal = document.getElementById(`m-val-pre-${type}-${idx}`);
+        const prePeak = document.getElementById(`m-peak-pre-${type}-${idx}`);
+        if (preBar) preBar.style.height = `${prePct}%`;
+        if (preVal) preVal.textContent = Math.round(preDb);
+        if (prePeak) prePeak.style.bottom = `${prePct}%`;
+
+        // Post-DSP VU
+        const postDb = vu[i] !== undefined ? vu[i] : -80;
+        const postPct = Math.max(0, Math.min(100, ((postDb + 60) / 72) * 100));
+        const postBar = document.getElementById(`m-bar-post-${type}-${idx}`);
+        const postVal = document.getElementById(`m-val-post-${type}-${idx}`);
+        const postPeak = document.getElementById(`m-peak-post-${type}-${idx}`);
+        if (postBar) postBar.style.height = `${postPct}%`;
+        if (postVal) postVal.textContent = Math.round(postDb);
+        if (postPeak) postPeak.style.bottom = `${postPct}%`;
+
+        // Limiter GR
+        const grDb = gr[i] !== undefined ? gr[i] : 0;
+        const grPct = Math.max(0, Math.min(100, (grDb / 18) * 100));
+        const grBar = document.getElementById(`m-bar-gr-${type}-${idx}`);
+        const grVal = document.getElementById(`m-val-gr-${type}-${idx}`);
+        const grLed = document.getElementById(`m-led-gr-${type}-${idx}`);
+        if (grBar) grBar.style.height = `${grPct}%`;
+        if (grVal) grVal.textContent = grDb >= 0.5 ? `-${grDb.toFixed(1)}` : '0';
+        if (grLed) {
+          if (grDb >= 0.5) grLed.classList.add('active');
+          else grLed.classList.remove('active');
+        }
+      }
+    }
+
+    function drawRtaBars(rta) {
+      const w = rtaCanvas.offsetWidth;
+      const h = rtaCanvas.offsetHeight;
+      rtaCtx.clearRect(0, 0, w, h);
+
+      const n = rta.length;
+      const gap = 2;
+      const barW = Math.max(2, (w - (n - 1) * gap) / n);
+
+      for (let i = 0; i < n; i++) {
+        const db = rta[i];
+        const pct = Math.max(0, Math.min(1, (db + 80) / 80));
+        const barH = pct * h;
+        const x = i * (barW + gap);
+        const y = h - barH;
+
+        // Gradient
+        const grad = rtaCtx.createLinearGradient(0, h, 0, 0);
+        grad.addColorStop(0, '#00d2f0');
+        grad.addColorStop(0.7, '#ff9100');
+        grad.addColorStop(1, '#ff1744');
+
+        rtaCtx.fillStyle = grad;
+        rtaCtx.fillRect(x, y, barW, barH);
+      }
+    }
+
+    // ==========================================
+    // INTERACTIVE DSP GRAPH ENGINES
+    // ==========================================
+    function drawGrid(ctx, w, h, dbMin, dbMax) {
+      ctx.clearRect(0, 0, w, h);
+      ctx.strokeStyle = '#0e263d';
+      ctx.lineWidth = 1;
+
+      // Horizontal dB lines
+      const dbSpan = dbMax - dbMin;
+      for (let db = dbMin; db <= dbMax; db += 12) {
+        const y = h - ((db - dbMin) / dbSpan) * h;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#446074';
+        ctx.font = '10px Consolas, monospace';
+        ctx.fillText(`${db > 0 ? '+' : ''}${db} dB`, 6, y - 3);
+      }
+
+      // Vertical Freq lines (Log scale: 20Hz to 20kHz)
+      const freqs = [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000];
       freqs.forEach(f => {
-        const x = w * Math.log10(f / 20) / 3;
-        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
-        ctx.fillText(`${f >= 1000 ? f / 1000 + 'k' : f}`, x + 2, h - 5);
+        const x = (Math.log10(f / 20) / 3) * w;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+
+        ctx.fillStyle = '#446074';
+        ctx.font = '9px Consolas, monospace';
+        const lbl = f >= 1000 ? `${f / 1000}k` : `${f}`;
+        ctx.fillText(lbl, x + 2, h - 5);
       });
     }
 
-    function drawXover(xo) {
-      const cvs = document.getElementById('xover-canvas');
-      if (!cvs) return;
-      const ctx = cvs.getContext('2d');
-      const w = cvs.width = cvs.offsetWidth;
-      const h = cvs.height = cvs.offsetHeight;
-
-      drawGrid(ctx, w, h);
-
-      ctx.beginPath();
-      ctx.strokeStyle = '#00D2F0'; // cyan
-      ctx.lineWidth = 2;
-
-      for (let px = 0; px < w; px++) {
-        const f = 20 * Math.pow(10, 3 * px / w);
-        let db = 0;
-        if (xo.hp.on && xo.hp.type > 0) {
-          const r = xo.hp.f / f;
-          db += -12 * Math.log10(1 + Math.pow(r, xo.hp.type * 2));
-        }
-        if (xo.lp.on && xo.lp.type > 0) {
-          const r = f / xo.lp.f;
-          db += -12 * Math.log10(1 + Math.pow(r, xo.lp.type * 2));
-        }
-
-        if (db < -30) db = -30;
-        const y = h / 2 - (db * (h / 60)); // different scale for xover
-        if (px === 0) ctx.moveTo(px, y);
-        else ctx.lineTo(px, y);
-      }
-      ctx.stroke();
-    }
-
-    function drawPeq(peqs) {
+    function drawPeqCurve() {
       const cvs = document.getElementById('peq-canvas');
       if (!cvs) return;
+      resizeCanvas(cvs);
       const ctx = cvs.getContext('2d');
-      const w = cvs.width = cvs.offsetWidth;
-      const h = cvs.height = cvs.offsetHeight;
+      const w = cvs.offsetWidth;
+      const h = cvs.offsetHeight;
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      if (!ch || !ch.peq) return;
 
-      drawGrid(ctx, w, h);
+      drawGrid(ctx, w, h, -24, 24);
 
-      // Composite curve
+      if (!ch.peqOn) {
+        // Draw dashed flat line
+        ctx.strokeStyle = '#555';
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        ctx.lineTo(w, h / 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        return;
+      }
+
+      // Calculate combined curve
       ctx.beginPath();
-      ctx.strokeStyle = '#00D2F0';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#00d2f0';
+      ctx.lineWidth = 2.5;
 
       for (let px = 0; px < w; px++) {
-        const f = 20 * Math.pow(10, 3 * px / w);
-        let db = 0;
-        // very rough approx for visual ONLY!
-        peqs.forEach(p => {
-          if (!p.on || p.g === 0) return;
-          const w0 = f / p.f;
-          const b = (w0 - 1 / w0) * p.q;
-          db += p.g / (1 + b * b);
+        const f = 20 * Math.pow(10, (3 * px) / w);
+        let totalDb = 0;
+
+        ch.peq.forEach(b => {
+          if (!b.on || b.g === 0) return;
+          // Biquad peaking response approx
+          const w0 = f / b.f;
+          const bw = (w0 - 1 / w0) * b.q;
+          totalDb += b.g / (1 + bw * bw);
         });
-        if (db < -24) db = -24; if (db > 24) db = 24;
-        const y = h / 2 - (db * (h / 48));
+
+        if (totalDb > 24) totalDb = 24;
+        if (totalDb < -24) totalDb = -24;
+        const y = h - ((totalDb + 24) / 48) * h;
+
         if (px === 0) ctx.moveTo(px, y);
         else ctx.lineTo(px, y);
       }
       ctx.stroke();
 
-      // Band dots
-      peqs.forEach((p, i) => {
-        if (!p.on) return;
-        const x = w * Math.log10(p.f / 20) / 3;
-        const y = h / 2 - (p.g * (h / 48));
+      // Band marker points
+      ch.peq.forEach((b, i) => {
+        if (!b.on) return;
+        const x = (Math.log10(b.f / 20) / 3) * w;
+        const y = h - ((b.g + 24) / 48) * h;
+
         ctx.beginPath();
-        ctx.arc(x, y, 6, 0, 2 * Math.PI);
-        ctx.fillStyle = PEQ_COLORS[i];
+        ctx.arc(x, y, 7, 0, Math.PI * 2);
+        ctx.fillStyle = PEQ_COLORS[i % PEQ_COLORS.length];
         ctx.fill();
         ctx.strokeStyle = '#fff';
         ctx.lineWidth = 2;
         ctx.stroke();
 
-        ctx.fillStyle = '#fff';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(i + 1, x - 3, y + 3);
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 9px monospace';
+        ctx.fillText(i + 1, x - 2.5, y + 3);
       });
     }
 
-    window.onload = init;
+    function drawXoverCurve() {
+      const cvs = document.getElementById('xover-canvas');
+      if (!cvs) return;
+      resizeCanvas(cvs);
+      const ctx = cvs.getContext('2d');
+      const w = cvs.offsetWidth;
+      const h = cvs.offsetHeight;
+      const ch = gState.outs[activeChIdx];
+      if (!ch || !ch.xover) return;
+
+      drawGrid(ctx, w, h, -60, 6);
+
+      ctx.beginPath();
+      ctx.strokeStyle = '#ff9100';
+      ctx.lineWidth = 2.5;
+
+      for (let px = 0; px < w; px++) {
+        const f = 20 * Math.pow(10, (3 * px) / w);
+        let db = 0;
+
+        // HPF
+        if (ch.xover.hp.on && ch.xover.hp.type > 0) {
+          const ratio = ch.xover.hp.f / f;
+          const order = (ch.xover.hp.slope || 24) / 6;
+          db += -10 * Math.log10(1 + Math.pow(ratio, 2 * order));
+        }
+
+        // LPF
+        if (ch.xover.lp.on && ch.xover.lp.type > 0) {
+          const ratio = f / ch.xover.lp.f;
+          const order = (ch.xover.lp.slope || 24) / 6;
+          db += -10 * Math.log10(1 + Math.pow(ratio, 2 * order));
+        }
+
+        if (db < -60) db = -60;
+        if (db > 6) db = 6;
+        const y = h - ((db + 60) / 66) * h;
+
+        if (px === 0) ctx.moveTo(px, y);
+        else ctx.lineTo(px, y);
+      }
+      ctx.stroke();
+    }
   </script>
 </body>
-
 </html>

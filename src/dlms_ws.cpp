@@ -6,19 +6,24 @@
 #include <string.h>
 
 
+#include <Arduino.h>
 #include "cJSON.h"
+#include "dlms_state.h"
+#include "pins.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 
-
 static const char *TAG = "dlms_ws";
 
 extern "C" void mark_ui_dirty();
+extern "C" void mark_audio_dirty();
 extern bool storage_save_preset(int slot);
 extern bool storage_load_preset(int slot);
+extern void storage_save_system(void);
+extern void storage_save_audio_state(void);
 
 #define WS_MAX_CLIENTS 8
 #define WS_MAX_RX_BYTES 1024
@@ -187,6 +192,14 @@ static esp_err_t ws_handler(httpd_req_t *req) {
           if (dlms_state_set_path_number(path->valuestring, v) == ESP_OK) {
             dlms_ws_broadcast_change(path->valuestring, v);
             mark_ui_dirty();
+            if (strcmp(path->valuestring, "system.brightness") == 0) {
+              analogWrite(PIN_TFT_BL, g_dlms.brightness);
+              storage_save_system();
+            } else if (strncmp(path->valuestring, "system.", 7) == 0) {
+              storage_save_system();
+            } else {
+              mark_audio_dirty();
+            }
           }
         }
       } else if (cJSON_IsString(type) && strcmp(type->valuestring, "preset_save") == 0) {
@@ -204,6 +217,35 @@ static esp_err_t ws_handler(httpd_req_t *req) {
             mark_ui_dirty();
           }
         }
+      } else if (cJSON_IsString(type) && strcmp(type->valuestring, "copy_channel") == 0) {
+        const cJSON *src = cJSON_GetObjectItem(root, "src");
+        const cJSON *dst = cJSON_GetObjectItem(root, "dst");
+        if (cJSON_IsNumber(src) && cJSON_IsNumber(dst)) {
+          int s = (int)src->valuedouble;
+          int d = (int)dst->valuedouble;
+          xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+          if (s < 2 && d < 2) {
+            char tmp[20]; strncpy(tmp, g_dlms.in[d].name, sizeof(tmp));
+            g_dlms.in[d] = g_dlms.in[s];
+            strncpy(g_dlms.in[d].name, tmp, sizeof(g_dlms.in[d].name));
+          } else if (s >= 2 && d >= 2) {
+            int so = s - 2, do_ch = d - 2;
+            char tmp[20]; strncpy(tmp, g_dlms.out[do_ch].name, sizeof(tmp));
+            g_dlms.out[do_ch] = g_dlms.out[so];
+            strncpy(g_dlms.out[do_ch].name, tmp, sizeof(g_dlms.out[do_ch].name));
+          }
+          xSemaphoreGive(g_state_mutex);
+          storage_save_audio_state();
+          dlms_ws_broadcast_state();
+          mark_ui_dirty();
+        }
+      } else if (cJSON_IsString(type) && strcmp(type->valuestring, "reset") == 0) {
+        xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+        dlms_state_init();
+        xSemaphoreGive(g_state_mutex);
+        storage_save_audio_state();
+        dlms_ws_broadcast_state();
+        mark_ui_dirty();
       }
       cJSON_Delete(root);
     }
@@ -303,6 +345,24 @@ esp_err_t dlms_ws_broadcast_meter_rta(const float vu_db[6], const float *rta_db,
   for (int i = 0; i < 6; i++)
     cJSON_AddItemToArray(vu, cJSON_CreateNumber(round1(vu_db[i])));
   cJSON_AddItemToObject(root, "vu", vu);
+
+  cJSON *gr = cJSON_CreateArray();
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.in_gr[0])));
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.in_gr[1])));
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.out_gr[0])));
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.out_gr[1])));
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.out_gr[2])));
+  cJSON_AddItemToArray(gr, cJSON_CreateNumber(round1(g_dlms.out_gr[3])));
+  cJSON_AddItemToObject(root, "gr", gr);
+
+  cJSON *pre = cJSON_CreateArray();
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.in_peak[0])));
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.in_peak[1])));
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.out_peak_pre[0])));
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.out_peak_pre[1])));
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.out_peak_pre[2])));
+  cJSON_AddItemToArray(pre, cJSON_CreateNumber(round1(g_dlms.out_peak_pre[3])));
+  cJSON_AddItemToObject(root, "pre", pre);
 
   cJSON *rta = cJSON_CreateArray();
   for (size_t i = 0; i < rta_count; i++)

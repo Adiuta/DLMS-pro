@@ -77,6 +77,7 @@ static cJSON *channel_json(const dlms_channel_t *c, bool input) {
   cJSON_AddNumberToObject(o, "gain", c->gain);
   cJSON_AddBoolToObject(o, "invert", c->invert);
   cJSON_AddNumberToObject(o, "delay", c->delay_ms);
+  cJSON_AddNumberToObject(o, "subsonic", c->subsonic_freq);
   cJSON_AddBoolToObject(o, "peqOn", c->peq_on);
 
   cJSON *bands = cJSON_CreateArray();
@@ -97,6 +98,7 @@ static cJSON *channel_json(const dlms_channel_t *c, bool input) {
   cJSON *lim = cJSON_CreateObject();
   cJSON_AddBoolToObject(lim, "on", c->limiter.on);
   cJSON_AddNumberToObject(lim, "thr", c->limiter.thr);
+  cJSON_AddNumberToObject(lim, "ratio", c->limiter.ratio);
   cJSON_AddNumberToObject(lim, "attack", c->limiter.attack);
   cJSON_AddNumberToObject(lim, "release", c->limiter.release);
   cJSON_AddNumberToObject(lim, "knee", c->limiter.knee);
@@ -153,9 +155,11 @@ cJSON *api_config_build_json(void) {
   cJSON_AddStringToObject(root, "apIp", st->ap_ip);
   cJSON_AddNumberToObject(root, "sampleRate", st->fs);
   cJSON_AddNumberToObject(root, "brightness", st->brightness);
+  cJSON_AddNumberToObject(root, "lcdTimeout", st->lcd_timeout_min);
   cJSON_AddBoolToObject(root, "wifiOn", st->wifi_on);
   cJSON_AddStringToObject(root, "wifiMode",
                           st->wifi_mode == RACK_LCD_WIFI_AP ? "AP" : "CLIENT");
+  cJSON_AddStringToObject(root, "wifiPassword", st->wifi_password);
 
   cJSON *ins = cJSON_CreateArray();
   for (int i = 0; i < 2; i++)
@@ -268,7 +272,10 @@ static void json_apply_channel(dlms_channel_t *c, const cJSON *o, bool input) {
   get_b(o, "mute", &c->mute);
   get_f(o, "gain", &c->gain, -80, 12);
   get_b(o, "invert", &c->invert);
-  get_f(o, "delay", &c->delay_ms, 0, 150);
+  get_f(o, "delay", &c->delay_ms, 0, 300);
+  float sub = 0;
+  if (get_f(o, "subsonic", &sub, 0, 200))
+    c->subsonic_freq = (int)sub;
   get_b(o, "peqOn", &c->peq_on);
 
   v = cJSON_GetObjectItem(o, "peq");
@@ -300,6 +307,7 @@ static void json_apply_channel(dlms_channel_t *c, const cJSON *o, bool input) {
   if (v) {
     get_b(v, "on", &c->limiter.on);
     get_f(v, "thr", &c->limiter.thr, -40, 12);
+    get_f(v, "ratio", &c->limiter.ratio, 1, 100);
     get_f(v, "attack", &c->limiter.attack, 0.1f, 500);
     get_f(v, "release", &c->limiter.release, 1, 5000);
     get_f(v, "knee", &c->limiter.knee, 0, 24);
@@ -378,6 +386,14 @@ static esp_err_t api_put(httpd_req_t *req) {
   if (get_u8(root, "brightness", &b, 10, 100)) {
     if (b != g_dlms.brightness) {
       g_dlms.brightness = b;
+      system_changed = true;
+    }
+  }
+
+  uint8_t lt;
+  if (get_u8(root, "lcdTimeout", &lt, 0, 30)) {
+    if (lt != g_dlms.lcd_timeout_min) {
+      g_dlms.lcd_timeout_min = lt;
       system_changed = true;
     }
   }

@@ -151,14 +151,19 @@ static Scr scr = S_MAIN, meterFrom = S_MAIN;
 static int sel[S_COUNT] = {0};
 static bool editing = false, dirty = true;
 void set_dirty() { dirty = true; }
+static uint32_t autoSaveAt = 0;
+static bool autoSavePending = false;
+void schedule_autosave() {
+  autoSavePending = true;
+  autoSaveAt = millis() + 2500;
+  dirty = true;
+}
 static int ch = 0, band = 0;
 static bool is_input_ch = false;
 static bool confSave = false, confYes = true;
 static int confSlot = 0;
 static const char *toastMsg = nullptr;
 static uint32_t toastUntil = 0, lastDraw = 0;
-static uint32_t autoSaveAt = 0;
-static bool autoSavePending = false;
 static bool wifiBleEnabled = false;
 
 static uint32_t lastActivityMs = 0;
@@ -1493,14 +1498,10 @@ static void handle(const Input &in) {
     break;
   }
 
-  // Live Sync: jika sedang edit dan encoder diputar, broadcast ke web
-  if (editing && in.accel != 0) {
-    // delay trigger or just broadcast directly
+  // Live Sync LCD -> Web: broadcast kapanpun nilai diedit via encoder atau aksi klik
+  if ((editing && in.accel != 0) || (in.click && (scr == S_GAIN || scr == S_GATE || scr == S_XOVER || scr == S_SUBSONIC || scr == S_LIM || scr == S_ROUTE || scr == S_LCD))) {
     dlms_ws_broadcast_state();
-    
-    // Refresh autosave timer
-    autoSavePending = true;
-    autoSaveAt = millis() + 3000;
+    schedule_autosave();
   }
 }
 

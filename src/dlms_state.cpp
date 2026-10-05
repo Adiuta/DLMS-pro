@@ -99,23 +99,126 @@ esp_err_t dlms_state_set_path_number(const char *path, float value)
 {
     if (!path) return ESP_ERR_INVALID_ARG;
 
-    int ch;
-    char prop[32];
     esp_err_t r = ESP_ERR_NOT_FOUND;
 
-    /* Dipanggil dari task httpd; DSP/UI membaca g_dlms di task lain. */
     xSemaphoreTake(g_state_mutex, portMAX_DELAY);
-    if (sscanf(path, "outs.%d.%31s", &ch, prop) == 2 && ch >= 0 && ch < 4) {
+
+    if (strncmp(path, "system.", 7) == 0) {
         r = ESP_OK;
-        if (strcmp(prop, "gain") == 0) g_dlms.out[ch].gain = value;
-        else if (strcmp(prop, "srcIn1") == 0) g_dlms.out[ch].src_in1 = (value > 0.5f);
-        else if (strcmp(prop, "srcIn2") == 0) g_dlms.out[ch].src_in2 = (value > 0.5f);
-        else r = ESP_ERR_NOT_FOUND;
-    } else if (sscanf(path, "ins.%d.%31s", &ch, prop) == 2 && ch >= 0 && ch < 2) {
-        r = ESP_OK;
-        if (strcmp(prop, "gain") == 0) g_dlms.in[ch].gain = value;
-        else r = ESP_ERR_NOT_FOUND;
+        const char *p = path + 7;
+        if (strcmp(p, "brightness") == 0) {
+            uint8_t b = (uint8_t)value;
+            if (b < 10) b = 10;
+            g_dlms.brightness = b;
+        } else if (strcmp(p, "lcdTimeout") == 0) {
+            g_dlms.lcd_timeout_min = (uint8_t)value;
+        } else {
+            r = ESP_ERR_NOT_FOUND;
+        }
+    } else {
+        bool is_in = (strncmp(path, "ins.", 4) == 0);
+        bool is_out = (strncmp(path, "outs.", 5) == 0);
+        if (is_in || is_out) {
+            const char *rest = is_in ? (path + 4) : (path + 5);
+            int ch = atoi(rest);
+            const char *dot = strchr(rest, '.');
+            if (dot && ((is_in && ch >= 0 && ch < 2) || (is_out && ch >= 0 && ch < 4))) {
+                dlms_channel_t *c = is_in ? &g_dlms.in[ch] : &g_dlms.out[ch];
+                const char *p = dot + 1;
+                r = ESP_OK;
+
+                if (strcmp(p, "gain") == 0) c->gain = value;
+                else if (strcmp(p, "mute") == 0) c->mute = (value > 0.5f);
+                else if (strcmp(p, "invert") == 0) c->invert = (value > 0.5f);
+                else if (strcmp(p, "delay") == 0) c->delay_ms = value;
+                else if (strcmp(p, "subsonic") == 0) c->subsonic_freq = (int)value;
+                else if (strcmp(p, "peqOn") == 0) c->peq_on = (value > 0.5f);
+                else if (strncmp(p, "peq.", 4) == 0) {
+                    int b_idx = atoi(p + 4);
+                    const char *b_dot = strchr(p + 4, '.');
+                    int max_bands = is_in ? DLMS_IN_BANDS : DLMS_OUT_BANDS;
+                    if (b_dot && b_idx >= 0 && b_idx < max_bands) {
+                        const char *bp = b_dot + 1;
+                        if (strcmp(bp, "on") == 0) {
+                            c->peq[b_idx].on = (value > 0.5f);
+                            if (c->peq[b_idx].on) c->peq_on = true;
+                        }
+                        else if (strcmp(bp, "f") == 0) c->peq[b_idx].f = value;
+                        else if (strcmp(bp, "g") == 0) {
+                            c->peq[b_idx].g = value;
+                            if (value != 0.0f) {
+                                c->peq[b_idx].on = true;
+                                c->peq_on = true;
+                            }
+                        }
+                        else if (strcmp(bp, "q") == 0) c->peq[b_idx].q = value;
+                        else if (strcmp(bp, "type") == 0) c->peq[b_idx].type = (uint8_t)value;
+                        else r = ESP_ERR_NOT_FOUND;
+                    } else r = ESP_ERR_NOT_FOUND;
+                }
+                else if (strncmp(p, "gate.", 5) == 0) {
+                    const char *gp = p + 5;
+                    if (strcmp(gp, "on") == 0) c->gate.on = (value > 0.5f);
+                    else if (strcmp(gp, "thr") == 0) c->gate.thr = value;
+                    else if (strcmp(gp, "depth") == 0) c->gate.depth = value;
+                    else if (strcmp(gp, "attack") == 0) c->gate.attack = value;
+                    else if (strcmp(gp, "hold") == 0) c->gate.hold = value;
+                    else if (strcmp(gp, "release") == 0) c->gate.release = value;
+                    else r = ESP_ERR_NOT_FOUND;
+                }
+                else if (strncmp(p, "lim.", 4) == 0) {
+                    const char *lp = p + 4;
+                    if (strcmp(lp, "on") == 0) c->limiter.on = (value > 0.5f);
+                    else if (strcmp(lp, "thr") == 0) {
+                        c->limiter.thr = value;
+                        c->limiter.on = (value < 0.0f || c->limiter.on);
+                    }
+                    else if (strcmp(lp, "ratio") == 0) c->limiter.ratio = value;
+                    else if (strcmp(lp, "attack") == 0) c->limiter.attack = value;
+                    else if (strcmp(lp, "release") == 0) c->limiter.release = value;
+                    else if (strcmp(lp, "knee") == 0) c->limiter.knee = value;
+                    else r = ESP_ERR_NOT_FOUND;
+                }
+                else if (is_out && strncmp(p, "xover.", 6) == 0) {
+                    const char *xp = p + 6;
+                    if (strncmp(xp, "hp.", 3) == 0) {
+                        const char *hpp = xp + 3;
+                        if (strcmp(hpp, "on") == 0) c->xover.hp.on = (value > 0.5f);
+                        else if (strcmp(hpp, "f") == 0) c->xover.hp.f = value;
+                        else if (strcmp(hpp, "type") == 0) {
+                            c->xover.hp.type = (uint8_t)value;
+                            c->xover.hp.on = (c->xover.hp.type != 0);
+                        }
+                        else if (strcmp(hpp, "slope") == 0) c->xover.hp.slope = (uint8_t)value;
+                        else r = ESP_ERR_NOT_FOUND;
+                    } else if (strncmp(xp, "lp.", 3) == 0) {
+                        const char *lpp = xp + 3;
+                        if (strcmp(lpp, "on") == 0) c->xover.lp.on = (value > 0.5f);
+                        else if (strcmp(lpp, "f") == 0) c->xover.lp.f = value;
+                        else if (strcmp(lpp, "type") == 0) {
+                            c->xover.lp.type = (uint8_t)value;
+                            c->xover.lp.on = (c->xover.lp.type != 0);
+                        }
+                        else if (strcmp(lpp, "slope") == 0) c->xover.lp.slope = (uint8_t)value;
+                        else r = ESP_ERR_NOT_FOUND;
+                    } else r = ESP_ERR_NOT_FOUND;
+                }
+                else if (is_out && strcmp(p, "srcIn1") == 0) {
+                    c->src_in1 = (value > 0.5f);
+                    c->src_gain1 = c->src_in1 ? 1.0f : 0.0f;
+                }
+                else if (is_out && strcmp(p, "srcIn2") == 0) {
+                    c->src_in2 = (value > 0.5f);
+                    c->src_gain2 = c->src_in2 ? 1.0f : 0.0f;
+                }
+                else if (is_out && strcmp(p, "srcGain1") == 0) c->src_gain1 = value;
+                else if (is_out && strcmp(p, "srcGain2") == 0) c->src_gain2 = value;
+                else r = ESP_ERR_NOT_FOUND;
+            }
+        }
     }
+
     xSemaphoreGive(g_state_mutex);
     return r;
 }
+
