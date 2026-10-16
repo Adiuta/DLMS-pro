@@ -12,7 +12,6 @@
 
 #define DSP_MAX_PEQ_BANDS    15
 #define DSP_XOVER_MAX_STAGES  4
-#define DSP_MAX_DELAY_SAMP  960   /* 20 ms @ 48 kHz */
 
 /* ── Biquad Filter (Direct Form II Transposed) ───────────────── */
 typedef struct {
@@ -43,10 +42,15 @@ typedef struct {
     float r;
 } dsp_dc_block_t;
 
+#define DSP_MAX_DELAY_SAMP_INTERNAL  960   /* 20 ms @ 48 kHz (internal RAM) */
+#define DSP_MAX_DELAY_SAMP_PSRAM    14400  /* 300 ms @ 48 kHz (PSRAM) */
+#define DSP_MAX_DELAY_SAMP          DSP_MAX_DELAY_SAMP_PSRAM
+
 /* ── Delay Line ──────────────────────────────────────────────── */
 typedef struct {
-    float    buf[DSP_MAX_DELAY_SAMP];
+    float   *buf;          /* delay buffer pointer (internal RAM or PSRAM) */
     uint16_t len;          /* delay length (samples) */
+    uint16_t max_samp;     /* maximum buffer capacity */
     uint16_t pos;          /* write position */
 } dsp_delay_t;
 
@@ -103,6 +107,9 @@ void dsp_gate_setup(dsp_dynamics_t *g, float thr_db, float depth_db,
 void dsp_limiter_setup(dsp_dynamics_t *l, float thr_db, float ratio, float knee_db,
                        float attack_ms, float release_ms, float fs);
 
+void dsp_delay_init(dsp_delay_t *d);
+void dsp_delay_reset(dsp_delay_t *d);
+void dsp_ch_ctx_reset_states(dsp_ch_ctx_t *ctx);
 void dsp_delay_set(dsp_delay_t *d, float ms, float fs);
 
 /* ══════════════════════════════════════════════════════════════
@@ -188,11 +195,11 @@ static inline float dsp_limiter_tick(dsp_dynamics_t *l, float x)
 /* Delay line */
 static inline float dsp_delay_tick(dsp_delay_t *d, float x)
 {
-    if (d->len == 0) return x;
+    if (d->len == 0 || !d->buf || d->max_samp == 0) return x;
     int rd = (int)d->pos - (int)d->len;
-    if (rd < 0) rd += DSP_MAX_DELAY_SAMP;
+    if (rd < 0) rd += d->max_samp;
     float out = d->buf[rd];
     d->buf[d->pos] = x;
-    if (++d->pos >= DSP_MAX_DELAY_SAMP) d->pos = 0;
+    if (++d->pos >= d->max_samp) d->pos = 0;
     return out;
 }

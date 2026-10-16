@@ -84,6 +84,7 @@ typedef struct {
     bool wifi_on;
     uint8_t wifi_mode;
     char wifi_password[33];
+    char sta_ssid[33];
 
     uint32_t fs;
     float in_peak[2];
@@ -101,9 +102,17 @@ extern dlms_state_t g_dlms;
 extern SemaphoreHandle_t g_state_mutex;
 
 void dlms_state_init(void);
+void dlms_state_reset_audio(void);
 void dlms_state_publish_vu(void);
 
 
 /* WebSocket transport helpers. */
 const dlms_state_t *dlms_state_get(void);
 esp_err_t dlms_state_set_path_number(const char *path, float value);
+
+static inline uint8_t dlms_brightness_pwm(uint8_t pct) {
+    if (pct < 10) pct = 10;
+    if (pct > 100) pct = 100;
+    return (uint8_t)((pct * 255 + 50) / 100);
+}
+

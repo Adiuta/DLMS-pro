@@ -442,6 +442,88 @@
       border-color: var(--orange);
       color: var(--orange);
     }
+    
+    /* INPUTS AND SELECTS */
+    .input-num {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .input-num:focus {
+      border-color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
+    .select-ctl {
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 6px 10px;
+      border-radius: 4px;
+      width: 100%;
+      outline: none;
+      appearance: none;
+      cursor: pointer;
+    }
+    .select-ctl:focus {
+      border-color: var(--cyan);
+    }
+    
+    /* TOGGLE SWITCH */
+    .switch-label {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 24px;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider-toggle {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #07101b;
+      border: 1px solid var(--border);
+      transition: .2s;
+      border-radius: 24px;
+    }
+    .slider-toggle:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: var(--text-muted);
+      transition: .2s;
+      border-radius: 50%;
+    }
+    input:checked + .slider-toggle {
+      background-color: rgba(0, 210, 240, 0.2);
+      border-color: var(--cyan);
+    }
+    input:checked + .slider-toggle:before {
+      transform: translateX(20px);
+      background-color: var(--cyan);
+      box-shadow: 0 0 8px var(--cyan-glow);
+    }
     .btn-edit-ch {
       grid-column: span 2;
       background: #0d2742;
@@ -545,21 +627,221 @@
       background-color: #000;
     }
 
-    /* GRAPH CANVASES */
+    /* GRAPH CANVASES & HUD TOOLTIP */
     .graph-box {
       width: 100%;
-      height: 220px;
+      height: 250px;
       background: #040912;
       border: 1px solid #0f273d;
-      border-radius: 6px;
+      border-radius: 8px;
       position: relative;
       margin-bottom: 14px;
       overflow: hidden;
+      box-shadow: inset 0 2px 12px rgba(0,0,0,0.7);
+      touch-action: none;
     }
     .graph-canvas {
       width: 100%;
       height: 100%;
       display: block;
+      cursor: crosshair;
+    }
+    .graph-hud {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: rgba(5, 14, 25, 0.88);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--cyan);
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 10;
+    }
+    .graph-hud span { color: var(--text-muted); }
+    .graph-hud b { color: #fff; }
+
+    /* STUDIO ACTIVE BAND STRIP */
+    .band-inspector-bar {
+      background: var(--bg-card-sub);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .band-pills-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 10px;
+    }
+    .band-selector-group {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .band-pill-btn {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      background: #061220;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .band-pill-btn:hover {
+      border-color: #fff;
+      color: #fff;
+    }
+    .band-pill-btn.active {
+      background: #0e2942;
+      border-color: var(--cyan);
+      color: #fff;
+      box-shadow: 0 0 10px var(--cyan-glow);
+    }
+    .band-pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .type-pills-group {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+    .type-pill-btn {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: #081524;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .type-pill-btn:hover { color: #fff; border-color: var(--text-muted); }
+    .type-pill-btn.active {
+      background: rgba(0, 210, 240, 0.2);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      font-weight: 800;
+    }
+
+    /* TACTILE SLIDER CLUSTERS */
+    .studio-sliders-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .studio-slider-box {
+      background: #071322;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .slider-box-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+    .slider-box-title {
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+    .slider-box-value {
+      color: var(--cyan);
+      font-weight: 800;
+      font-size: 13px;
+    }
+    .slider-control-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .stepper-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .btn-step-sm {
+      background: #0b2238;
+      border: 1px solid var(--border);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 4px 7px;
+      border-radius: 3px;
+      cursor: pointer;
+      line-height: 1;
+      transition: all 0.1s ease;
+    }
+    .btn-step-sm:hover {
+      background: var(--cyan);
+      color: #000;
+      border-color: var(--cyan);
+    }
+    .slope-pills-row {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .slope-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: #081524;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .slope-pill:hover { color: #fff; border-color: var(--text-muted); }
+    .slope-pill.active {
+      background: rgba(0, 230, 118, 0.2);
+      border-color: var(--green);
+      color: var(--green);
+      font-weight: 800;
+    }
+    .slope-pill.active.lpf {
+      background: rgba(255, 145, 0, 0.2);
+      border-color: var(--orange);
+      color: var(--orange);
+      font-weight: 800;
     }
 
     /* FORMS & PARAMETER GRIDS */
@@ -904,6 +1186,8 @@
     // ==========================================
     // WEBSOCKET COMMUNICATIONS
     // ==========================================
+    const wsQueue = [];
+
     function connectWebSocket() {
       if (ws) {
         try { ws.close(); } catch(e){}
@@ -920,6 +1204,10 @@
         if (reconnectInterval) { clearInterval(reconnectInterval); reconnectInterval = null; }
         // Request state
         ws.send(JSON.stringify({ type: 'get_state' }));
+        // Flush any queued changes
+        while (wsQueue.length > 0) {
+          ws.send(wsQueue.shift());
+        }
       };
 
       ws.onclose = () => {
@@ -987,53 +1275,60 @@
       // 1. Update local cache immediately
       applyPathChange(path, value);
 
-      // 2. Send via WebSocket for zero latency
+      // 2. Send via WebSocket for zero latency (or queue if disconnected)
+      const numVal = (typeof value === 'boolean') ? (value ? 1 : 0) : parseFloat(value);
+      const payload = JSON.stringify({
+        type: 'set',
+        path: path,
+        value: isNaN(numVal) ? value : numVal
+      });
+
       if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({
-          type: 'set',
-          path: path,
-          value: parseFloat(value)
-        }));
+        ws.send(payload);
+      } else {
+        wsQueue.push(payload);
       }
     }
 
     function applyPathChange(path, value) {
       if (!gState) return;
+      const numVal = (typeof value === 'boolean') ? (value ? 1 : 0) : parseFloat(value);
+      const v = isNaN(numVal) ? value : numVal;
       const parts = path.split('.');
       if (parts[0] === 'system') {
-        if (parts[1] === 'brightness') gState.brightness = value;
-        else if (parts[1] === 'lcdTimeout') gState.lcdTimeout = value;
+        if (parts[1] === 'brightness') gState.brightness = v;
+        else if (parts[1] === 'lcdTimeout') gState.lcdTimeout = v;
       } else if (parts[0] === 'ins' || parts[0] === 'outs') {
         const arr = parts[0] === 'ins' ? gState.ins : gState.outs;
         const chIdx = parseInt(parts[1]);
         if (!arr || !arr[chIdx]) return;
         const ch = arr[chIdx];
         
-        if (parts[2] === 'gain') ch.gain = value;
-        else if (parts[2] === 'mute') ch.mute = (value > 0.5);
-        else if (parts[2] === 'invert') ch.invert = (value > 0.5);
-        else if (parts[2] === 'delay') ch.delay = value;
-        else if (parts[2] === 'subsonic') ch.subsonic = value;
-        else if (parts[2] === 'peqOn') ch.peqOn = (value > 0.5);
-        else if (parts[2] === 'srcIn1') ch.srcIn1 = (value > 0.5);
-        else if (parts[2] === 'srcIn2') ch.srcIn2 = (value > 0.5);
+        if (parts[2] === 'gain') ch.gain = v;
+        else if (parts[2] === 'mute') ch.mute = (v > 0.5);
+        else if (parts[2] === 'invert') ch.invert = (v > 0.5);
+        else if (parts[2] === 'delay') ch.delay = v;
+        else if (parts[2] === 'subsonic') ch.subsonic = v;
+        else if (parts[2] === 'peqOn') ch.peqOn = (v > 0.5);
+        else if (parts[2] === 'srcIn1') ch.srcIn1 = (v > 0.5);
+        else if (parts[2] === 'srcIn2') ch.srcIn2 = (v > 0.5);
         else if (parts[2] === 'peq' && parts[4]) {
           const bIdx = parseInt(parts[3]);
           if (ch.peq && ch.peq[bIdx]) {
-            ch.peq[bIdx][parts[4]] = (parts[4] === 'on') ? (value > 0.5) : value;
+            ch.peq[bIdx][parts[4]] = (parts[4] === 'on') ? (v > 0.5) : v;
           }
         } else if (parts[2] === 'gate' && parts[3]) {
-          ch.gate[parts[3]] = (parts[3] === 'on') ? (value > 0.5) : value;
+          ch.gate[parts[3]] = (parts[3] === 'on') ? (v > 0.5) : v;
         } else if (parts[2] === 'lim' && parts[3]) {
-          ch.lim[parts[3]] = (parts[3] === 'on') ? (value > 0.5) : value;
+          ch.lim[parts[3]] = (parts[3] === 'on') ? (v > 0.5) : v;
         } else if (parts[2] === 'xover' && parts[4]) {
           const sec = parts[3]; // 'hp' or 'lp'
-          ch.xover[sec][parts[4]] = (parts[4] === 'on') ? (value > 0.5) : value;
+          ch.xover[sec][parts[4]] = (parts[4] === 'on') ? (v > 0.5) : v;
         }
       }
 
       // Sync active view UI elements without disrupting active focus
-      syncUiElements(path, value);
+      syncUiElements(path, v);
     }
 
     function syncUiElements(path, value) {
@@ -1064,9 +1359,39 @@
           }
         }
       } else if (currentTab.startsWith('in-') || currentTab.startsWith('out-')) {
-        // If we are on detail page, re-render curves or active inputs if not focused
-        if (path.includes('peq') && typeof drawPeqCurve === 'function') drawPeqCurve();
-        if (path.includes('xover') && typeof drawXoverCurve === 'function') drawXoverCurve();
+        const parts = path.split('.');
+        const chType = parts[0] === 'ins' ? 'in' : 'out';
+        const chIdx = parseInt(parts[1]);
+        if (chType === activeChType && chIdx === activeChIdx) {
+          if (parts[2] === 'gain') {
+            const sl = document.getElementById('detail-gain-sl');
+            const num = document.getElementById('detail-gain-val');
+            if (sl && document.activeElement !== sl) sl.value = value;
+            if (num) num.textContent = `${value >= 0 ? '+' : ''}${parseFloat(value).toFixed(1)} dB`;
+          } else if (parts[2] === 'delay') {
+            const sl = document.getElementById('detail-delay-sl');
+            const num = document.getElementById('detail-delay-val');
+            const dist = document.getElementById('detail-delay-dist');
+            if (sl && document.activeElement !== sl) sl.value = value;
+            if (num) num.textContent = `${parseFloat(value).toFixed(1)} ms`;
+            if (dist) dist.textContent = `${(value * 0.343).toFixed(2)} m / ${(value * 1.1253).toFixed(2)} ft`;
+          } else if (parts[2] === 'peq') {
+            if (typeof drawPeqCurve === 'function') drawPeqCurve();
+            const bIdx = parseInt(parts[3]);
+            if (bIdx === selectedBandIdx && typeof updateBandInspectorControls === 'function') {
+              updateBandInspectorControls(bIdx);
+            }
+          } else if (parts[2] === 'xover') {
+            if (typeof drawXoverCurve === 'function') drawXoverCurve();
+            if (typeof updateXoverControls === 'function') updateXoverControls();
+          } else if (parts[2] === 'peqOn') {
+            const tog = document.getElementById('peq-master-toggle');
+            const st = document.getElementById('peq-master-state');
+            if (tog) tog.checked = (value > 0.5);
+            if (st) st.textContent = (value > 0.5) ? 'ACTIVE' : 'BYPASS';
+            if (typeof drawPeqCurve === 'function') drawPeqCurve();
+          }
+        }
       }
     }
 
@@ -1256,25 +1581,37 @@
         </div>
 
         <div class="param-grid">
-          <!-- Channel Gain -->
+          <!-- Channel Gain Slider -->
           <div class="param-item">
-            <label>CHANNEL GAIN</label>
-            <div class="param-control">
-              <input type="number" class="input-num" min="-60" max="12" step="0.5" value="${ch.gain}"
-                     onchange="setPath('${activeChType}s.${activeChIdx}.gain', this.value)">
-              <span style="font-family:var(--font-mono); color:var(--text-dim)">dB</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label>CHANNEL GAIN</label>
+              <span id="detail-gain-val" style="font-family:var(--font-mono); font-weight:800; color:var(--cyan); font-size:12px;">
+                ${ch.gain >= 0 ? '+' : ''}${ch.gain.toFixed(1)} dB
+              </span>
+            </div>
+            <div class="slider-row" style="margin-top:4px;">
+              <button class="btn-step" onclick="stepDetailGain(-0.5)">-</button>
+              <input type="range" min="-60" max="12" step="0.5" value="${ch.gain}" id="detail-gain-sl"
+                     oninput="onDetailGainSlider(this.value)">
+              <button class="btn-step" onclick="stepDetailGain(0.5)">+</button>
             </div>
           </div>
 
-          <!-- Delay -->
+          <!-- Delay Slider -->
           <div class="param-item">
-            <label>DELAY TIME</label>
-            <div class="param-control">
-              <input type="number" class="input-num" min="0" max="300" step="0.1" value="${ch.delay.toFixed(1)}"
-                     onchange="setPath('${activeChType}s.${activeChIdx}.delay', this.value)">
-              <span style="font-family:var(--font-mono); color:var(--text-dim)">ms</span>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label>DELAY TIME</label>
+              <span id="detail-delay-val" style="font-family:var(--font-mono); font-weight:800; color:var(--cyan); font-size:12px;">
+                ${ch.delay.toFixed(1)} ms
+              </span>
             </div>
-            <div style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim); margin-top:2px;">
+            <div class="slider-row" style="margin-top:4px;">
+              <button class="btn-step" onclick="stepDetailDelay(-1.0)">-</button>
+              <input type="range" min="0" max="300" step="0.1" value="${ch.delay}" id="detail-delay-sl"
+                     oninput="onDetailDelaySlider(this.value)">
+              <button class="btn-step" onclick="stepDetailDelay(1.0)">+</button>
+            </div>
+            <div id="detail-delay-dist" style="font-family:var(--font-mono); font-size:10px; color:var(--text-dim); margin-top:2px;">
               ${(ch.delay * 0.343).toFixed(2)} m / ${(ch.delay * 1.1253).toFixed(2)} ft
             </div>
           </div>
@@ -1321,76 +1658,110 @@
         xoverCard.className = 'detail-card';
         xoverCard.innerHTML = `
           <div class="card-title-row">
-            <div class="card-title">CROSSOVER FILTER (X-OVER)</div>
+            <div class="card-title">
+              <span>CROSSOVER FILTER (X-OVER)</span>
+              <span style="font-size:11px; font-weight:400; color:var(--text-dim); margin-left:10px;">
+                (Geser handle garis HPF / LPF di canvas atau gunakan slider di bawah)
+              </span>
+            </div>
           </div>
 
           <!-- X-OVER GRAPH -->
           <div class="graph-box">
             <canvas id="xover-canvas" class="graph-canvas"></canvas>
+            <div id="xover-hud" class="graph-hud">
+              <span>XOVER:</span> HPF <b id="hud-hpf-val">${ch.xover.hp.on ? ch.xover.hp.f + ' Hz' : 'OFF'}</b> | LPF <b id="hud-lpf-val">${ch.xover.lp.on ? ch.xover.lp.f + ' Hz' : 'OFF'}</b>
+            </div>
           </div>
 
-          <div class="param-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <div class="param-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
             <!-- HPF -->
             <div class="param-item" style="border-left: 3px solid var(--green);">
-              <label style="color:var(--green)">HIGH-PASS FILTER (HPF)</label>
-              <div style="display:flex; gap:6px; margin: 4px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="color:var(--green)">HIGH-PASS FILTER (HPF)</label>
                 <label class="switch-label">
                   <div class="switch">
-                    <input type="checkbox" ${ch.xover.hp.on ? 'checked' : ''}
-                           onchange="setPath('outs.${activeChIdx}.xover.hp.on', this.checked ? 1 : 0)">
+                    <input type="checkbox" id="xover-hp-toggle" ${ch.xover.hp.on ? 'checked' : ''}
+                           onchange="toggleXoverHp(this.checked)">
                     <span class="slider-toggle"></span>
                   </div>
-                  <span>${ch.xover.hp.on ? 'ON' : 'OFF'}</span>
+                  <span id="xover-hp-state">${ch.xover.hp.on ? 'ON' : 'OFF'}</span>
                 </label>
               </div>
-              <div class="param-control">
-                <label style="width:50px">FREQ:</label>
-                <input type="number" class="input-num" min="20" max="20000" step="1" value="${ch.xover.hp.f}"
-                       onchange="setPath('outs.${activeChIdx}.xover.hp.f', this.value)">
-                <span>Hz</span>
+
+              <!-- HPF Freq Slider -->
+              <div class="slider-box-head" style="margin-top:4px;">
+                <span class="slider-box-title">CUTOFF FREQUENCY:</span>
+                <span class="slider-box-value" id="xover-hp-f-val" style="color:var(--green)">${ch.xover.hp.f} Hz</span>
               </div>
-              <div class="param-control" style="margin-top:6px;">
-                <label style="width:50px">SLOPE:</label>
-                <select class="select-ctl" onchange="onXoverSlope('hp', this.value)">
-                  <option value="0" ${ch.xover.hp.type == 0 ? 'selected' : ''}>OFF</option>
-                  <option value="1" ${ch.xover.hp.type == 1 ? 'selected' : ''}>BW 12dB/oct</option>
-                  <option value="2" ${ch.xover.hp.type == 2 ? 'selected' : ''}>BW 18dB/oct</option>
-                  <option value="3" ${ch.xover.hp.type == 3 ? 'selected' : ''}>BW 24dB/oct</option>
-                  <option value="4" ${ch.xover.hp.type == 4 ? 'selected' : ''}>LR 12dB/oct</option>
-                  <option value="5" ${ch.xover.hp.type == 5 ? 'selected' : ''}>LR 24dB/oct</option>
-                </select>
+              <div class="slider-control-row">
+                <div class="stepper-btn-group">
+                  <button class="btn-step-sm" onclick="stepXoverFreq('hp', -10)">-10</button>
+                  <button class="btn-step-sm" onclick="stepXoverFreq('hp', -1)">-1</button>
+                </div>
+                <input type="range" min="0" max="1000" id="xover-hp-f-sl"
+                       value="${freqToLogSlider(ch.xover.hp.f)}"
+                       oninput="onXoverLogSlider('hp', this.value)">
+                <div class="stepper-btn-group">
+                  <button class="btn-step-sm" onclick="stepXoverFreq('hp', 1)">+1</button>
+                  <button class="btn-step-sm" onclick="stepXoverFreq('hp', 10)">+10</button>
+                </div>
+              </div>
+
+              <!-- Slope Preset Pills -->
+              <div style="margin-top:8px;">
+                <span class="slider-box-title">FILTER SLOPE / TYPE:</span>
+                <div class="slope-pills-row">
+                  ${[0, 1, 2, 3, 4, 5].map(st => `
+                    <button class="slope-pill ${ch.xover.hp.type == st ? 'active' : ''}"
+                            onclick="selectXoverSlope('hp', ${st})">${FT_NAMES[st]}</button>
+                  `).join('')}
+                </div>
               </div>
             </div>
 
             <!-- LPF -->
             <div class="param-item" style="border-left: 3px solid var(--orange);">
-              <label style="color:var(--orange)">LOW-PASS FILTER (LPF)</label>
-              <div style="display:flex; gap:6px; margin: 4px 0;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="color:var(--orange)">LOW-PASS FILTER (LPF)</label>
                 <label class="switch-label">
                   <div class="switch">
-                    <input type="checkbox" ${ch.xover.lp.on ? 'checked' : ''}
-                           onchange="setPath('outs.${activeChIdx}.xover.lp.on', this.checked ? 1 : 0)">
+                    <input type="checkbox" id="xover-lp-toggle" ${ch.xover.lp.on ? 'checked' : ''}
+                           onchange="toggleXoverLp(this.checked)">
                     <span class="slider-toggle"></span>
                   </div>
-                  <span>${ch.xover.lp.on ? 'ON' : 'OFF'}</span>
+                  <span id="xover-lp-state">${ch.xover.lp.on ? 'ON' : 'OFF'}</span>
                 </label>
               </div>
-              <div class="param-control">
-                <label style="width:50px">FREQ:</label>
-                <input type="number" class="input-num" min="20" max="20000" step="1" value="${ch.xover.lp.f}"
-                       onchange="setPath('outs.${activeChIdx}.xover.lp.f', this.value)">
-                <span>Hz</span>
+
+              <!-- LPF Freq Slider -->
+              <div class="slider-box-head" style="margin-top:4px;">
+                <span class="slider-box-title">CUTOFF FREQUENCY:</span>
+                <span class="slider-box-value" id="xover-lp-f-val" style="color:var(--orange)">${ch.xover.lp.f} Hz</span>
               </div>
-              <div class="param-control" style="margin-top:6px;">
-                <label style="width:50px">SLOPE:</label>
-                <select class="select-ctl" onchange="onXoverSlope('lp', this.value)">
-                  <option value="0" ${ch.xover.lp.type == 0 ? 'selected' : ''}>OFF</option>
-                  <option value="1" ${ch.xover.lp.type == 1 ? 'selected' : ''}>BW 12dB/oct</option>
-                  <option value="2" ${ch.xover.lp.type == 2 ? 'selected' : ''}>BW 18dB/oct</option>
-                  <option value="3" ${ch.xover.lp.type == 3 ? 'selected' : ''}>BW 24dB/oct</option>
-                  <option value="4" ${ch.xover.lp.type == 4 ? 'selected' : ''}>LR 12dB/oct</option>
-                  <option value="5" ${ch.xover.lp.type == 5 ? 'selected' : ''}>LR 24dB/oct</option>
-                </select>
+              <div class="slider-control-row">
+                <div class="stepper-btn-group">
+                  <button class="btn-step-sm" onclick="stepXoverFreq('lp', -10)">-10</button>
+                  <button class="btn-step-sm" onclick="stepXoverFreq('lp', -1)">-1</button>
+                </div>
+                <input type="range" min="0" max="1000" id="xover-lp-f-sl"
+                       value="${freqToLogSlider(ch.xover.lp.f)}"
+                       oninput="onXoverLogSlider('lp', this.value)">
+                <div class="stepper-btn-group">
+                  <button class="btn-step-sm" onclick="stepXoverFreq('lp', 1)">+1</button>
+                  <button class="btn-step-sm" onclick="stepXoverFreq('lp', 10)">+10</button>
+                </div>
+              </div>
+
+              <!-- Slope Preset Pills -->
+              <div style="margin-top:8px;">
+                <span class="slider-box-title">FILTER SLOPE / TYPE:</span>
+                <div class="slope-pills-row">
+                  ${[0, 1, 2, 3, 4, 5].map(st => `
+                    <button class="slope-pill lpf ${ch.xover.lp.type == st ? 'active lpf' : ''}"
+                            onclick="selectXoverSlope('lp', ${st})">${FT_NAMES[st]}</button>
+                  `).join('')}
+                </div>
               </div>
             </div>
           </div>
@@ -1407,22 +1778,36 @@
             <span>PARAMETRIC EQUALIZER (${ch.peq.length} BANDS)</span>
             <label class="switch-label" style="margin-left:14px;">
               <div class="switch">
-                <input type="checkbox" ${ch.peqOn ? 'checked' : ''}
+                <input type="checkbox" id="peq-master-toggle" ${ch.peqOn ? 'checked' : ''}
                        onchange="setPath('${activeChType}s.${activeChIdx}.peqOn', this.checked ? 1 : 0)">
                 <span class="slider-toggle"></span>
               </div>
-              <span>${ch.peqOn ? 'ACTIVE' : 'BYPASS'}</span>
+              <span id="peq-master-state">${ch.peqOn ? 'ACTIVE' : 'BYPASS'}</span>
             </label>
+            <span style="font-size:11px; font-weight:400; color:var(--text-dim); margin-left:10px;">
+              (Tarik titik node di canvas atau geser slider di bawah)
+            </span>
           </div>
-          <button class="btn-action" onclick="resetPeqFlat()">FLAT ALL BANDS</button>
+          <div style="display:flex; gap:6px;">
+            <button class="btn-action" onclick="resetSelectedBandFlat()">FLAT SELECTED BAND</button>
+            <button class="btn-action" onclick="resetPeqFlat()">FLAT ALL BANDS</button>
+          </div>
         </div>
 
-        <!-- PEQ GRAPH -->
+        <!-- PEQ GRAPH CANVAS -->
         <div class="graph-box">
           <canvas id="peq-canvas" class="graph-canvas"></canvas>
+          <div id="peq-hud" class="graph-hud">
+            <span id="hud-band-name">BAND 1:</span> <b id="hud-freq-val">1000 Hz</b> | <b id="hud-gain-val">0.0 dB</b> | Q: <b id="hud-q-val">1.41</b> [<b id="hud-type-val">BELL</b>]
+          </div>
         </div>
 
-        <!-- PEQ BANDS TABLE -->
+        <!-- STUDIO ACTIVE BAND INSPECTOR STRIP (SLIDERS & CONTROLS) -->
+        <div class="band-inspector-bar" id="band-inspector-container">
+          <!-- Rendered dynamically by renderBandInspector() -->
+        </div>
+
+        <!-- PEQ BANDS SUMMARY TABLE -->
         <div class="peq-table-wrap">
           <table class="peq-table">
             <thead>
@@ -1437,29 +1822,29 @@
             </thead>
             <tbody>
               ${ch.peq.map((b, i) => `
-                <tr>
+                <tr style="cursor:pointer;" onclick="selectBand(${i})">
                   <td>
                     <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:${PEQ_COLORS[i % PEQ_COLORS.length]}; margin-right:4px;"></span>
                     ${i + 1}
                   </td>
                   <td>
-                    <input type="checkbox" ${b.on ? 'checked' : ''}
-                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.on', this.checked ? 1 : 0)">
+                    <input type="checkbox" id="peq-tbl-on-${i}" ${b.on ? 'checked' : ''}
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.on', this.checked ? 1 : 0); event.stopPropagation();">
                   </td>
                   <td>
-                    <input type="number" class="input-num" min="20" max="20000" step="1" value="${b.f}" style="width:90px"
-                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.f', this.value)">
+                    <input type="number" class="input-num" id="peq-tbl-f-${i}" min="20" max="20000" step="1" value="${b.f}" style="width:90px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.f', this.value); event.stopPropagation();">
                   </td>
                   <td>
-                    <input type="number" class="input-num" min="-24" max="24" step="0.5" value="${b.g}" style="width:75px"
-                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.g', this.value)">
+                    <input type="number" class="input-num" id="peq-tbl-g-${i}" min="-24" max="24" step="0.5" value="${b.g}" style="width:75px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.g', this.value); event.stopPropagation();">
                   </td>
                   <td>
-                    <input type="number" class="input-num" min="0.3" max="20" step="0.1" value="${b.q}" style="width:75px"
-                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.q', this.value)">
+                    <input type="number" class="input-num" id="peq-tbl-q-${i}" min="0.3" max="20" step="0.1" value="${b.q}" style="width:75px"
+                           onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.q', this.value); event.stopPropagation();">
                   </td>
                   <td>
-                    <select class="select-ctl" style="width:130px" onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.type', this.value)">
+                    <select class="select-ctl" id="peq-tbl-type-${i}" style="width:130px" onchange="setPath('${activeChType}s.${activeChIdx}.peq.${i}.type', this.value); event.stopPropagation();">
                       ${PEQ_TYPES.map((t, ti) => `<option value="${ti}" ${b.type == ti ? 'selected' : ''}>${t}</option>`).join('')}
                     </select>
                   </td>
@@ -1496,14 +1881,28 @@
             </div>
             <div class="param-grid">
               <div class="param-item">
-                <label>THRESHOLD (dB)</label>
-                <input type="number" class="input-num" min="-80" max="0" step="1" value="${ch.gate.thr}"
-                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.thr', this.value)">
+                <div style="display:flex; justify-content:space-between;">
+                  <label>THRESHOLD</label>
+                  <span id="gate-thr-val" style="font-family:var(--font-mono); font-weight:800; color:var(--blue); font-size:12px;">${ch.gate.thr} dB</span>
+                </div>
+                <div class="slider-row">
+                  <button class="btn-step" onclick="stepGateParam('thr', -1)">-</button>
+                  <input type="range" min="-80" max="0" step="1" value="${ch.gate.thr}" id="gate-thr-sl"
+                         oninput="onGateParamSlider('thr', this.value)">
+                  <button class="btn-step" onclick="stepGateParam('thr', 1)">+</button>
+                </div>
               </div>
               <div class="param-item">
-                <label>DEPTH (dB)</label>
-                <input type="number" class="input-num" min="-80" max="0" step="1" value="${ch.gate.depth}"
-                       onchange="setPath('${activeChType}s.${activeChIdx}.gate.depth', this.value)">
+                <div style="display:flex; justify-content:space-between;">
+                  <label>DEPTH</label>
+                  <span id="gate-depth-val" style="font-family:var(--font-mono); font-weight:800; color:var(--blue); font-size:12px;">${ch.gate.depth} dB</span>
+                </div>
+                <div class="slider-row">
+                  <button class="btn-step" onclick="stepGateParam('depth', -1)">-</button>
+                  <input type="range" min="-80" max="0" step="1" value="${ch.gate.depth}" id="gate-depth-sl"
+                         oninput="onGateParamSlider('depth', this.value)">
+                  <button class="btn-step" onclick="stepGateParam('depth', 1)">+</button>
+                </div>
               </div>
               <div class="param-item">
                 <label>ATTACK (ms)</label>
@@ -1526,7 +1925,17 @@
           <!-- LIMITER -->
           <div class="param-item" style="border-top:3px solid var(--red)">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
-              <span style="font-family:var(--font-mono); font-weight:800; color:#fff;">PEAK LIMITER</span>
+              <div style="display:flex; align-items:center; gap:12px;">
+                <span style="font-family:var(--font-mono); font-weight:800; color:#fff;">PEAK LIMITER</span>
+                <!-- Mini GR Meter -->
+                <div style="display:flex; align-items:center; gap:6px;">
+                  <div class="gr-led" id="detail-led-gr"></div>
+                  <div style="width:40px; height:8px; background:#081420; border:1px solid #14324c; border-radius:4px; overflow:hidden; position:relative;">
+                    <div id="detail-bar-gr" style="position:absolute; top:0; left:0; height:100%; width:0%; background:linear-gradient(90deg, var(--yellow), var(--red)); transition:width 0.05s ease-out;"></div>
+                  </div>
+                  <span id="detail-val-gr" style="font-family:var(--font-mono); font-size:10px; color:var(--text-muted); width:30px;">0</span>
+                </div>
+              </div>
               <label class="switch-label">
                 <div class="switch">
                   <input type="checkbox" ${ch.lim.on ? 'checked' : ''}
@@ -1538,9 +1947,16 @@
             </div>
             <div class="param-grid">
               <div class="param-item">
-                <label>THRESHOLD (dB)</label>
-                <input type="number" class="input-num" min="-40" max="12" step="0.5" value="${ch.lim.thr}"
-                       onchange="setPath('${activeChType}s.${activeChIdx}.lim.thr', this.value)">
+                <div style="display:flex; justify-content:space-between;">
+                  <label>THRESHOLD</label>
+                  <span id="lim-thr-val" style="font-family:var(--font-mono); font-weight:800; color:var(--red); font-size:12px;">${ch.lim.thr >= 0 ? '+' : ''}${ch.lim.thr.toFixed(1)} dB</span>
+                </div>
+                <div class="slider-row">
+                  <button class="btn-step" onclick="stepLimParam('thr', -0.5)">-</button>
+                  <input type="range" min="-40" max="12" step="0.5" value="${ch.lim.thr}" id="lim-thr-sl"
+                         oninput="onLimParamSlider('thr', this.value)">
+                  <button class="btn-step" onclick="stepLimParam('thr', 0.5)">+</button>
+                </div>
               </div>
               <div class="param-item">
                 <label>RATIO</label>
@@ -1574,9 +1990,14 @@
       `;
       container.appendChild(dynCard);
 
-      // Render Interactive Curves
+      // Render Band Inspector Bar and Interactive Curves
+      renderBandInspector();
       setTimeout(() => {
-        if (activeChType === 'out') drawXoverCurve();
+        if (activeChType === 'out') {
+          setupXoverCanvasInteraction();
+          drawXoverCurve();
+        }
+        setupPeqCanvasInteraction();
         drawPeqCurve();
       }, 20);
     }
@@ -1749,9 +2170,7 @@
         drawRtaBars(data.rta);
       }
 
-      // 2. DASHBOARD STRIP METERS
-      if (currentTab !== 'dashboard') return;
-
+      // 2. DASHBOARD STRIP METERS & DETAIL METERS
       const vu = data.vu || [];
       const pre = data.pre || [];
       const gr = data.gr || [];
@@ -1793,6 +2212,20 @@
         if (grLed) {
           if (grDb >= 0.5) grLed.classList.add('active');
           else grLed.classList.remove('active');
+        }
+
+        // Update Channel Detail Limiter GR if active
+        const isDetail = currentTab.startsWith('in-') || currentTab.startsWith('out-');
+        if (isDetail && activeChType === type && activeChIdx === idx) {
+          const detBar = document.getElementById('detail-bar-gr');
+          const detVal = document.getElementById('detail-val-gr');
+          const detLed = document.getElementById('detail-led-gr');
+          if (detBar) detBar.style.width = `${grPct}%`;
+          if (detVal) detVal.textContent = grDb >= 0.5 ? `-${grDb.toFixed(1)}` : '0';
+          if (detLed) {
+            if (grDb >= 0.5) detLed.classList.add('active');
+            else detLed.classList.remove('active');
+          }
         }
       }
     }
@@ -1862,6 +2295,407 @@
       });
     }
 
+    // ==========================================
+    // DSP MATH & CONVERSION HELPERS
+    // ==========================================
+    const throttledTimers = {};
+    function throttledSetPath(path, value, delay = 35) {
+      applyPathChange(path, value);
+      if (!throttledTimers[path]) {
+        throttledTimers[path] = setTimeout(() => {
+          delete throttledTimers[path];
+          const numVal = (typeof value === 'boolean') ? (value ? 1 : 0) : parseFloat(value);
+          const payload = JSON.stringify({
+            type: 'set',
+            path: path,
+            value: isNaN(numVal) ? value : numVal
+          });
+          if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(payload);
+          } else {
+            wsQueue.push(payload);
+          }
+        }, delay);
+      }
+    }
+
+    function freqToLogSlider(f) {
+      const norm = Math.log10(Math.max(20, Math.min(20000, f)) / 20) / 3;
+      return Math.round(norm * 1000);
+    }
+
+    function logSliderToFreq(val) {
+      const norm = Math.max(0, Math.min(1000, val)) / 1000;
+      const f = 20 * Math.pow(10, norm * 3);
+      return Math.round(f);
+    }
+
+    function freqToPos(f, w) {
+      const normX = Math.log10(Math.max(20, Math.min(20000, f)) / 20) / 3;
+      return normX * w;
+    }
+
+    function posToFreq(x, w) {
+      const normX = Math.max(0, Math.min(1, x / w));
+      const f = 20 * Math.pow(10, normX * 3);
+      return Math.max(20, Math.min(20000, Math.round(f)));
+    }
+
+    function gainToPos(g, h) {
+      const normY = (24 - Math.max(-24, Math.min(24, g))) / 48;
+      return normY * h;
+    }
+
+    function posToGain(y, h) {
+      const normY = Math.max(0, Math.min(1, y / h));
+      const g = 24 - normY * 48;
+      return Math.max(-24, Math.min(24, Math.round(g * 10) / 10));
+    }
+
+    function getCanvasEventPos(cvs, e) {
+      const rect = cvs.getBoundingClientRect();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      return {
+        x: Math.max(0, Math.min(rect.width, clientX - rect.left)),
+        y: Math.max(0, Math.min(rect.height, clientY - rect.top)),
+        w: rect.width,
+        h: rect.height
+      };
+    }
+
+    function calcBiquadDb(type, f0, g, q, f, fs = 48000) {
+      if (type === 4) return 0; // ALLPASS has flat magnitude
+      if (g === 0 && (type === 0 || type === 1 || type === 2)) return 0;
+      const w0 = 2 * Math.PI * f0 / fs;
+      const cw = Math.cos(w0);
+      const sw = Math.sin(w0);
+      const alpha = sw / (2 * q);
+      const A = Math.pow(10, g / 40);
+      let b0 = 1, b1 = 0, b2 = 0, a0 = 1, a1 = 0, a2 = 0;
+
+      switch (type) {
+        default:
+        case 0: // BELL
+          b0 = 1 + alpha * A; b1 = -2 * cw; b2 = 1 - alpha * A;
+          a0 = 1 + alpha / A; a1 = -2 * cw; a2 = 1 - alpha / A;
+          break;
+        case 1: { // LOSHELF
+          const sqA = Math.sqrt(A), t = 2 * sqA * alpha;
+          b0 = A * ((A + 1) - (A - 1) * cw + t);
+          b1 = 2 * A * ((A - 1) - (A + 1) * cw);
+          b2 = A * ((A + 1) - (A - 1) * cw - t);
+          a0 = (A + 1) + (A - 1) * cw + t;
+          a1 = -2 * ((A - 1) + (A + 1) * cw);
+          a2 = (A + 1) - (A - 1) * cw - t;
+          break;
+        }
+        case 2: { // HISHELF
+          const sqA = Math.sqrt(A), t = 2 * sqA * alpha;
+          b0 = A * ((A + 1) + (A - 1) * cw + t);
+          b1 = -2 * A * ((A - 1) + (A + 1) * cw);
+          b2 = A * ((A + 1) - (A - 1) * cw - t);
+          a0 = (A + 1) - (A - 1) * cw + t;
+          a1 = 2 * ((A - 1) - (A + 1) * cw);
+          a2 = (A + 1) - (A - 1) * cw - t;
+          break;
+        }
+        case 3: // NOTCH
+          b0 = 1; b1 = -2 * cw; b2 = 1;
+          a0 = 1 + alpha; a1 = -2 * cw; a2 = 1 - alpha;
+          break;
+        case 5: // LOWPASS
+          b1 = 1 - cw; b0 = b1 * 0.5; b2 = b0;
+          a0 = 1 + alpha; a1 = -2 * cw; a2 = 1 - alpha;
+          break;
+        case 6: // HIGHPASS
+          b1 = -(1 + cw); b0 = (1 + cw) * 0.5; b2 = b0;
+          a0 = 1 + alpha; a1 = -2 * cw; a2 = 1 - alpha;
+          break;
+      }
+      const w = 2 * Math.PI * f / fs;
+      const c1 = Math.cos(w), s1 = Math.sin(w), c2 = Math.cos(2 * w), s2 = Math.sin(2 * w);
+      const nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
+      const dr = a0 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
+      return 10 * Math.log10((nr * nr + ni * ni) / (dr * dr + di * di + 1e-12));
+    }
+
+    // ==========================================
+    // INTERACTIVE PEQ CANVAS & SLIDER ENGINE
+    // ==========================================
+    let selectedBandIdx = 0;
+    let peqDrag = { isDragging: false, bandIdx: -1 };
+    let peqHoverBand = -1;
+
+    function renderBandInspector() {
+      const container = document.getElementById('band-inspector-container');
+      if (!container || !gState) return;
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      if (!ch || !ch.peq) return;
+
+      if (selectedBandIdx >= ch.peq.length) selectedBandIdx = 0;
+      const b = ch.peq[selectedBandIdx];
+      if (!b) return;
+
+      const bandColor = PEQ_COLORS[selectedBandIdx % PEQ_COLORS.length];
+
+      container.innerHTML = `
+        <!-- ROW 1: BAND SELECTION CHIPS & BAND ACTIVE/FLAT BUTTONS -->
+        <div class="band-pills-row">
+          <div class="band-selector-group">
+            <span style="font-family:var(--font-mono); font-size:10px; font-weight:800; color:var(--text-muted); margin-right:4px;">BAND:</span>
+            ${ch.peq.map((band, i) => `
+              <button class="band-pill-btn ${i === selectedBandIdx ? 'active' : ''}"
+                      onclick="selectBand(${i})"
+                      style="${i === selectedBandIdx ? `border-color:${PEQ_COLORS[i % PEQ_COLORS.length]}; box-shadow:0 0 10px ${PEQ_COLORS[i % PEQ_COLORS.length]}55;` : ''}">
+                <span class="band-pill-dot" style="background:${PEQ_COLORS[i % PEQ_COLORS.length]};"></span>
+                ${i + 1}
+              </button>
+            `).join('')}
+          </div>
+
+          <div style="display:flex; align-items:center; gap:8px;">
+            <label class="switch-label">
+              <div class="switch">
+                <input type="checkbox" id="band-on-toggle" ${b.on ? 'checked' : ''}
+                       onchange="toggleSelectedBand(this.checked)">
+                <span class="slider-toggle"></span>
+              </div>
+              <span id="band-on-state" style="font-weight:700;">${b.on ? 'BAND ON' : 'BYPASS'}</span>
+            </label>
+            <button class="btn-step-sm" onclick="resetSelectedBandFlat()" style="padding:5px 8px; font-size:10px;">FLAT (0 dB)</button>
+          </div>
+        </div>
+
+        <!-- ROW 2: FILTER TYPE SELECTION PILLS -->
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span style="font-family:var(--font-mono); font-size:10px; font-weight:800; color:var(--text-muted);">TYPE:</span>
+          <div class="type-pills-group">
+            ${PEQ_TYPES.map((t, ti) => `
+              <button class="type-pill-btn ${b.type == ti ? 'active' : ''}"
+                      onclick="selectBandType(${ti})">${t}</button>
+            `).join('')}
+          </div>
+        </div>
+
+        <!-- ROW 3: 3 TACTILE STUDIO RANGE SLIDERS -->
+        <div class="studio-sliders-grid">
+          <!-- 1. FREQUENCY SLIDER -->
+          <div class="studio-slider-box">
+            <div class="slider-box-head">
+              <span class="slider-box-title">FREQUENCY</span>
+              <span class="slider-box-value" id="bi-freq-val" style="color:${bandColor};">
+                ${b.f >= 1000 ? (b.f / 1000).toFixed(2) + ' kHz' : b.f + ' Hz'}
+              </span>
+            </div>
+            <div class="slider-control-row">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandFreq(-10)">-10</button>
+                <button class="btn-step-sm" onclick="stepBandFreq(-1)">-1</button>
+              </div>
+              <input type="range" min="0" max="1000" id="bi-freq-sl"
+                     value="${freqToLogSlider(b.f)}"
+                     oninput="onBandFreqSlider(this.value)">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandFreq(1)">+1</button>
+                <button class="btn-step-sm" onclick="stepBandFreq(10)">+10</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. GAIN SLIDER -->
+          <div class="studio-slider-box">
+            <div class="slider-box-head">
+              <span class="slider-box-title">GAIN (dB)</span>
+              <span class="slider-box-value" id="bi-gain-val" style="color:${b.g > 0 ? 'var(--cyan)' : b.g < 0 ? 'var(--orange)' : '#fff'};">
+                ${b.g >= 0 ? '+' : ''}${b.g.toFixed(1)} dB
+              </span>
+            </div>
+            <div class="slider-control-row">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandGain(-1.0)">-1</button>
+                <button class="btn-step-sm" onclick="stepBandGain(-0.1)">-0.1</button>
+              </div>
+              <input type="range" min="-240" max="240" step="1" id="bi-gain-sl"
+                     value="${Math.round(b.g * 10)}"
+                     oninput="onBandGainSlider(this.value)">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandGain(0.1)">+0.1</button>
+                <button class="btn-step-sm" onclick="stepBandGain(1.0)">+1</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. Q FACTOR SLIDER -->
+          <div class="studio-slider-box">
+            <div class="slider-box-head">
+              <span class="slider-box-title">Q FACTOR (WIDTH)</span>
+              <span class="slider-box-value" id="bi-q-val" style="color:var(--yellow);">
+                ${b.q.toFixed(2)}
+              </span>
+            </div>
+            <div class="slider-control-row">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandQ(-0.5)">-0.5</button>
+                <button class="btn-step-sm" onclick="stepBandQ(-0.05)">-0.05</button>
+              </div>
+              <input type="range" min="30" max="2000" step="5" id="bi-q-sl"
+                     value="${Math.round(b.q * 100)}"
+                     oninput="onBandQSlider(this.value)">
+              <div class="stepper-btn-group">
+                <button class="btn-step-sm" onclick="stepBandQ(0.05)">+0.05</button>
+                <button class="btn-step-sm" onclick="stepBandQ(0.5)">+0.5</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateBandInspectorControls(idx) {
+      if (idx !== selectedBandIdx) return;
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      if (!ch || !ch.peq) return;
+      const b = ch.peq[idx];
+      if (!b) return;
+
+      const fVal = document.getElementById('bi-freq-val');
+      const fSl = document.getElementById('bi-freq-sl');
+      const gVal = document.getElementById('bi-gain-val');
+      const gSl = document.getElementById('bi-gain-sl');
+      const qVal = document.getElementById('bi-q-val');
+      const qSl = document.getElementById('bi-q-sl');
+
+      if (fVal) fVal.textContent = b.f >= 1000 ? (b.f / 1000).toFixed(2) + ' kHz' : b.f + ' Hz';
+      if (fSl && document.activeElement !== fSl) fSl.value = freqToLogSlider(b.f);
+
+      if (gVal) {
+        gVal.textContent = `${b.g >= 0 ? '+' : ''}${b.g.toFixed(1)} dB`;
+        gVal.style.color = b.g > 0 ? 'var(--cyan)' : b.g < 0 ? 'var(--orange)' : '#fff';
+      }
+      if (gSl && document.activeElement !== gSl) gSl.value = Math.round(b.g * 10);
+
+      if (qVal) qVal.textContent = b.q.toFixed(2);
+      if (qSl && document.activeElement !== qSl) qSl.value = Math.round(b.q * 100);
+
+      // Table row inputs
+      const tblF = document.getElementById(`peq-tbl-f-${idx}`);
+      const tblG = document.getElementById(`peq-tbl-g-${idx}`);
+      const tblQ = document.getElementById(`peq-tbl-q-${idx}`);
+      if (tblF && document.activeElement !== tblF) tblF.value = b.f;
+      if (tblG && document.activeElement !== tblG) tblG.value = b.g;
+      if (tblQ && document.activeElement !== tblQ) tblQ.value = b.q;
+    }
+
+    function selectBand(idx) {
+      selectedBandIdx = idx;
+      renderBandInspector();
+      drawPeqCurve();
+    }
+
+    function selectBandType(type) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      b.type = type;
+      drawPeqCurve();
+      renderBandInspector();
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.type`, type);
+    }
+
+    function toggleSelectedBand(on) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      b.on = on;
+      const st = document.getElementById('band-on-state');
+      if (st) st.textContent = on ? 'BAND ON' : 'BYPASS';
+      drawPeqCurve();
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.on`, on ? 1 : 0);
+    }
+
+    function resetSelectedBandFlat() {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      b.g = 0;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.g`, 0);
+    }
+
+    function onBandFreqSlider(val) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      const f = logSliderToFreq(val);
+      b.f = f;
+      if (!b.on) b.on = true;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.f`, f);
+    }
+
+    function stepBandFreq(delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      let f = Math.max(20, Math.min(20000, b.f + delta));
+      b.f = f;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.f`, f);
+    }
+
+    function onBandGainSlider(val) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      const g = Math.round(val) / 10;
+      b.g = g;
+      if (!b.on) b.on = true;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.g`, g);
+    }
+
+    function stepBandGain(delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      let g = Math.max(-24, Math.min(24, Math.round((b.g + delta) * 10) / 10));
+      b.g = g;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.g`, g);
+    }
+
+    function onBandQSlider(val) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      const q = Math.round(val) / 100;
+      b.q = q;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.q`, q);
+    }
+
+    function stepBandQ(delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      const b = ch.peq[selectedBandIdx];
+      let q = Math.max(0.3, Math.min(20.0, Math.round((b.q + delta) * 100) / 100));
+      b.q = q;
+      drawPeqCurve();
+      updateBandInspectorControls(selectedBandIdx);
+      setPath(`${activeChType}s.${activeChIdx}.peq.${selectedBandIdx}.q`, q);
+    }
+
+    function findHitBand(ch, x, y, w, h) {
+      if (!ch || !ch.peq) return -1;
+      const hitRadius = 18;
+      for (let i = 0; i < ch.peq.length; i++) {
+        const b = ch.peq[i];
+        const bx = freqToPos(b.f, w);
+        const by = gainToPos(b.g, h);
+        const dist = Math.hypot(x - bx, y - by);
+        if (dist <= hitRadius) return i;
+      }
+      return -1;
+    }
+
     function drawPeqCurve() {
       const cvs = document.getElementById('peq-canvas');
       if (!cvs) return;
@@ -1875,7 +2709,6 @@
       drawGrid(ctx, w, h, -24, 24);
 
       if (!ch.peqOn) {
-        // Draw dashed flat line
         ctx.strokeStyle = '#555';
         ctx.setLineDash([4, 4]);
         ctx.beginPath();
@@ -1886,51 +2719,266 @@
         return;
       }
 
-      // Calculate combined curve
-      ctx.beginPath();
-      ctx.strokeStyle = '#00d2f0';
-      ctx.lineWidth = 2.5;
-
-      for (let px = 0; px < w; px++) {
+      // 1. Calculate overall composite response curve points
+      const curvePoints = [];
+      for (let px = 0; px <= w; px += 2) {
         const f = 20 * Math.pow(10, (3 * px) / w);
         let totalDb = 0;
-
         ch.peq.forEach(b => {
-          if (!b.on || b.g === 0) return;
-          // Biquad peaking response approx
-          const w0 = f / b.f;
-          const bw = (w0 - 1 / w0) * b.q;
-          totalDb += b.g / (1 + bw * bw);
+          if (!b.on) return;
+          totalDb += calcBiquadDb(b.type !== undefined ? b.type : 0, b.f, b.g, b.q, f);
         });
-
         if (totalDb > 24) totalDb = 24;
         if (totalDb < -24) totalDb = -24;
         const y = h - ((totalDb + 24) / 48) * h;
-
-        if (px === 0) ctx.moveTo(px, y);
-        else ctx.lineTo(px, y);
+        curvePoints.push({ x: px, y: y });
       }
+
+      // 2. Gradient contour fill between curve and center 0dB line (h / 2)
+      if (curvePoints.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, h / 2);
+        curvePoints.forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.lineTo(w, h / 2);
+        ctx.closePath();
+        const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+        fillGrad.addColorStop(0, 'rgba(0, 210, 240, 0.22)');
+        fillGrad.addColorStop(0.5, 'rgba(0, 210, 240, 0.04)');
+        fillGrad.addColorStop(1, 'rgba(255, 145, 0, 0.22)');
+        ctx.fillStyle = fillGrad;
+        ctx.fill();
+      }
+
+      // 3. Draw main composite curve
+      ctx.beginPath();
+      ctx.strokeStyle = '#00e5ff';
+      ctx.lineWidth = 2.5;
+      curvePoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
       ctx.stroke();
 
-      // Band marker points
-      ch.peq.forEach((b, i) => {
-        if (!b.on) return;
-        const x = (Math.log10(b.f / 20) / 3) * w;
-        const y = h - ((b.g + 24) / 48) * h;
+      // 4. Ghost individual curve for selected band
+      if (selectedBandIdx >= 0 && selectedBandIdx < ch.peq.length) {
+        const selB = ch.peq[selectedBandIdx];
+        if (selB.on && Math.abs(selB.g) > 0.1) {
+          ctx.beginPath();
+          ctx.strokeStyle = PEQ_COLORS[selectedBandIdx % PEQ_COLORS.length];
+          ctx.lineWidth = 1.2;
+          ctx.setLineDash([3, 3]);
+          for (let px = 0; px <= w; px += 3) {
+            const f = 20 * Math.pow(10, (3 * px) / w);
+            const db = calcBiquadDb(selB.type !== undefined ? selB.type : 0, selB.f, selB.g, selB.q, f);
+            const cy = h - ((Math.max(-24, Math.min(24, db)) + 24) / 48) * h;
+            if (px === 0) ctx.moveTo(px, cy);
+            else ctx.lineTo(px, cy);
+          }
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
 
+      // 5. Band marker nodes
+      ch.peq.forEach((b, i) => {
+        const x = freqToPos(b.f, w);
+        const y = gainToPos(b.g, h);
+        const isSelected = (i === selectedBandIdx);
+        const isHovered = (i === peqHoverBand);
+        const color = PEQ_COLORS[i % PEQ_COLORS.length];
+
+        // Pulsing glow halo for selected or hovered band
+        if (isSelected || isHovered) {
+          ctx.beginPath();
+          ctx.arc(x, y, isSelected ? 16 : 13, 0, Math.PI * 2);
+          ctx.fillStyle = isSelected ? 'rgba(0, 229, 255, 0.25)' : 'rgba(255, 255, 255, 0.15)';
+          ctx.fill();
+
+          // Guide crosshairs when dragging
+          if (peqDrag.isDragging && isSelected) {
+            ctx.strokeStyle = 'rgba(0, 229, 255, 0.4)';
+            ctx.setLineDash([2, 2]);
+            ctx.lineWidth = 1;
+            // Vertical guide line
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, h);
+            ctx.stroke();
+            // Horizontal guide line
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(w, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+
+        // Outer circle
         ctx.beginPath();
-        ctx.arc(x, y, 7, 0, Math.PI * 2);
-        ctx.fillStyle = PEQ_COLORS[i % PEQ_COLORS.length];
+        ctx.arc(x, y, isSelected ? 10 : 8, 0, Math.PI * 2);
+        ctx.fillStyle = b.on ? color : '#334455';
         ctx.fill();
-        ctx.strokeStyle = '#fff';
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = isSelected ? '#fff' : (b.on ? '#fff' : '#667788');
+        ctx.lineWidth = isSelected ? 2.5 : 1.5;
         ctx.stroke();
 
-        ctx.fillStyle = '#000';
-        ctx.font = 'bold 9px monospace';
-        ctx.fillText(i + 1, x - 2.5, y + 3);
+        // Node text
+        ctx.fillStyle = b.on ? '#000' : '#aaa';
+        ctx.font = `bold ${isSelected ? '10px' : '9px'} sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(i + 1, x, y);
       });
+
+      // 6. Update HUD display
+      const activeB = ch.peq[selectedBandIdx];
+      if (activeB) {
+        const fStr = activeB.f >= 1000 ? (activeB.f / 1000).toFixed(2) + ' kHz' : activeB.f + ' Hz';
+        const gStr = `${activeB.g >= 0 ? '+' : ''}${activeB.g.toFixed(1)} dB`;
+        const typeName = PEQ_TYPES[activeB.type !== undefined ? activeB.type : 0].split(' ')[0];
+        
+        const hudName = document.getElementById('hud-band-name');
+        const hudF = document.getElementById('hud-freq-val');
+        const hudG = document.getElementById('hud-gain-val');
+        const hudQ = document.getElementById('hud-q-val');
+        const hudT = document.getElementById('hud-type-val');
+
+        if (hudName) hudName.textContent = `BAND ${selectedBandIdx + 1}:`;
+        if (hudF) hudF.textContent = fStr;
+        if (hudG) hudG.textContent = gStr;
+        if (hudQ) hudQ.textContent = activeB.q.toFixed(2);
+        if (hudT) hudT.textContent = typeName;
+      }
     }
+
+    function setupPeqCanvasInteraction() {
+      const cvs = document.getElementById('peq-canvas');
+      if (!cvs || cvs.dataset.eventsAttached) return;
+      cvs.dataset.eventsAttached = "true";
+
+      cvs.addEventListener('mousedown', (e) => {
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+        const hit = findHitBand(ch, pos.x, pos.y, pos.w, pos.h);
+        if (hit !== -1) {
+          selectedBandIdx = hit;
+          peqDrag.isDragging = true;
+          peqDrag.bandIdx = hit;
+          renderBandInspector();
+          drawPeqCurve();
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        const cvs = document.getElementById('peq-canvas');
+        if (!cvs) return;
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+
+        if (peqDrag.isDragging && peqDrag.bandIdx !== -1) {
+          const f = posToFreq(pos.x, pos.w);
+          const g = posToGain(pos.y, pos.h);
+          const b = ch.peq[peqDrag.bandIdx];
+          b.f = f;
+          b.g = g;
+          if (!b.on) b.on = true;
+
+          drawPeqCurve();
+          updateBandInspectorControls(peqDrag.bandIdx);
+          throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.f`, f);
+          throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.g`, g);
+        } else {
+          const hit = findHitBand(ch, pos.x, pos.y, pos.w, pos.h);
+          if (hit !== peqHoverBand) {
+            peqHoverBand = hit;
+            cvs.style.cursor = hit !== -1 ? 'grab' : 'crosshair';
+            drawPeqCurve();
+          }
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (peqDrag.isDragging && peqDrag.bandIdx !== -1) {
+          const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+          const b = ch.peq[peqDrag.bandIdx];
+          setPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.f`, b.f);
+          setPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.g`, b.g);
+          peqDrag.isDragging = false;
+          peqDrag.bandIdx = -1;
+          drawPeqCurve();
+        }
+      });
+
+      cvs.addEventListener('touchstart', (e) => {
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+        const hit = findHitBand(ch, pos.x, pos.y, pos.w, pos.h);
+        if (hit !== -1) {
+          if (e.cancelable) e.preventDefault();
+          selectedBandIdx = hit;
+          peqDrag.isDragging = true;
+          peqDrag.bandIdx = hit;
+          renderBandInspector();
+          drawPeqCurve();
+        }
+      }, { passive: false });
+
+      window.addEventListener('touchmove', (e) => {
+        if (peqDrag.isDragging && peqDrag.bandIdx !== -1) {
+          if (e.cancelable) e.preventDefault();
+          const cvs = document.getElementById('peq-canvas');
+          if (!cvs) return;
+          const pos = getCanvasEventPos(cvs, e);
+          const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+          const f = posToFreq(pos.x, pos.w);
+          const g = posToGain(pos.y, pos.h);
+          const b = ch.peq[peqDrag.bandIdx];
+          b.f = f;
+          b.g = g;
+          if (!b.on) b.on = true;
+
+          drawPeqCurve();
+          updateBandInspectorControls(peqDrag.bandIdx);
+          throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.f`, f);
+          throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.g`, g);
+        }
+      }, { passive: false });
+
+      window.addEventListener('touchend', () => {
+        if (peqDrag.isDragging && peqDrag.bandIdx !== -1) {
+          const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+          const b = ch.peq[peqDrag.bandIdx];
+          setPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.f`, b.f);
+          setPath(`${activeChType}s.${activeChIdx}.peq.${peqDrag.bandIdx}.g`, b.g);
+          peqDrag.isDragging = false;
+          peqDrag.bandIdx = -1;
+          drawPeqCurve();
+        }
+      });
+
+      cvs.addEventListener('wheel', (e) => {
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+        const hit = findHitBand(ch, pos.x, pos.y, pos.w, pos.h);
+        if (hit !== -1) {
+          e.preventDefault();
+          const b = ch.peq[hit];
+          const delta = (e.deltaY < 0 ? 0.1 : -0.1) * (e.shiftKey ? 0.02 : 1);
+          let newQ = Math.round((b.q + delta) * 100) / 100;
+          newQ = Math.max(0.3, Math.min(20.0, newQ));
+          b.q = newQ;
+          drawPeqCurve();
+          updateBandInspectorControls(hit);
+          throttledSetPath(`${activeChType}s.${activeChIdx}.peq.${hit}.q`, newQ);
+        }
+      }, { passive: false });
+    }
+
+    // ==========================================
+    // INTERACTIVE CROSSOVER CANVAS & CONTROLS
+    // ==========================================
+    let xoverDrag = { isDragging: false, target: null };
+    let xoverHoverTarget = null;
 
     function drawXoverCurve() {
       const cvs = document.getElementById('xover-canvas');
@@ -1944,36 +2992,396 @@
 
       drawGrid(ctx, w, h, -60, 6);
 
-      ctx.beginPath();
-      ctx.strokeStyle = '#ff9100';
-      ctx.lineWidth = 2.5;
-
-      for (let px = 0; px < w; px++) {
+      // 1. Calculate combined curve
+      const curvePoints = [];
+      for (let px = 0; px <= w; px += 2) {
         const f = 20 * Math.pow(10, (3 * px) / w);
         let db = 0;
 
         // HPF
         if (ch.xover.hp.on && ch.xover.hp.type > 0) {
           const ratio = ch.xover.hp.f / f;
-          const order = (ch.xover.hp.slope || 24) / 6;
-          db += -10 * Math.log10(1 + Math.pow(ratio, 2 * order));
+          const ty = ch.xover.hp.type;
+          if (ty === 1) db += -10 * Math.log10(1 + Math.pow(ratio, 4));
+          else if (ty === 2) db += -10 * Math.log10(1 + Math.pow(ratio, 6));
+          else if (ty === 3) db += -10 * Math.log10(1 + Math.pow(ratio, 8));
+          else if (ty === 4) db += -20 * Math.log10(1 + Math.pow(ratio, 2));
+          else if (ty === 5) db += -20 * Math.log10(1 + Math.pow(ratio, 4));
         }
 
         // LPF
         if (ch.xover.lp.on && ch.xover.lp.type > 0) {
           const ratio = f / ch.xover.lp.f;
-          const order = (ch.xover.lp.slope || 24) / 6;
-          db += -10 * Math.log10(1 + Math.pow(ratio, 2 * order));
+          const ty = ch.xover.lp.type;
+          if (ty === 1) db += -10 * Math.log10(1 + Math.pow(ratio, 4));
+          else if (ty === 2) db += -10 * Math.log10(1 + Math.pow(ratio, 6));
+          else if (ty === 3) db += -10 * Math.log10(1 + Math.pow(ratio, 8));
+          else if (ty === 4) db += -20 * Math.log10(1 + Math.pow(ratio, 2));
+          else if (ty === 5) db += -20 * Math.log10(1 + Math.pow(ratio, 4));
         }
 
         if (db < -60) db = -60;
         if (db > 6) db = 6;
         const y = h - ((db + 60) / 66) * h;
-
-        if (px === 0) ctx.moveTo(px, y);
-        else ctx.lineTo(px, y);
+        curvePoints.push({ x: px, y: y });
       }
+
+      // 2. Passband gradient fill
+      if (curvePoints.length > 0) {
+        ctx.beginPath();
+        ctx.moveTo(0, h);
+        curvePoints.forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.lineTo(w, h);
+        ctx.closePath();
+        const fillGrad = ctx.createLinearGradient(0, 0, 0, h);
+        fillGrad.addColorStop(0, 'rgba(255, 145, 0, 0.2)');
+        fillGrad.addColorStop(1, 'rgba(0, 0, 0, 0.05)');
+        ctx.fillStyle = fillGrad;
+        ctx.fill();
+      }
+
+      // 3. Stroke main curve
+      ctx.beginPath();
+      ctx.strokeStyle = '#ff9100';
+      ctx.lineWidth = 2.5;
+      curvePoints.forEach((pt, idx) => {
+        if (idx === 0) ctx.moveTo(pt.x, pt.y);
+        else ctx.lineTo(pt.x, pt.y);
+      });
       ctx.stroke();
+
+      // 4. Draw HPF Handle and Line
+      if (ch.xover.hp.on && ch.xover.hp.f) {
+        const hpx = freqToPos(ch.xover.hp.f, w);
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#00e676';
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(hpx, 0);
+        ctx.lineTo(hpx, h);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Handle Badge
+        ctx.fillStyle = '#00e676';
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(hpx - 34, 10, 68, 20, 4) : ctx.rect(hpx - 34, 10, 68, 20);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`HP ${ch.xover.hp.f >= 1000 ? (ch.xover.hp.f/1000).toFixed(1) + 'k' : ch.xover.hp.f + 'Hz'}`, hpx, 20);
+      }
+
+      // 5. Draw LPF Handle and Line
+      if (ch.xover.lp.on && ch.xover.lp.f) {
+        const lpx = freqToPos(ch.xover.lp.f, w);
+        ctx.beginPath();
+        ctx.setLineDash([4, 4]);
+        ctx.strokeStyle = '#ff9100';
+        ctx.lineWidth = 1.5;
+        ctx.moveTo(lpx, 0);
+        ctx.lineTo(lpx, h);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Handle Badge
+        ctx.fillStyle = '#ff9100';
+        ctx.beginPath();
+        ctx.roundRect ? ctx.roundRect(lpx - 34, 34, 68, 20, 4) : ctx.rect(lpx - 34, 34, 68, 20);
+        ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`LP ${ch.xover.lp.f >= 1000 ? (ch.xover.lp.f/1000).toFixed(1) + 'k' : ch.xover.lp.f + 'Hz'}`, lpx, 44);
+      }
+    }
+
+    function setupXoverCanvasInteraction() {
+      const cvs = document.getElementById('xover-canvas');
+      if (!cvs || cvs.dataset.eventsAttached) return;
+      cvs.dataset.eventsAttached = "true";
+
+      cvs.addEventListener('mousedown', (e) => {
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = gState.outs[activeChIdx];
+        if (!ch || !ch.xover) return;
+        const hpx = freqToPos(ch.xover.hp.f, pos.w);
+        const lpx = freqToPos(ch.xover.lp.f, pos.w);
+
+        if (Math.abs(pos.x - hpx) <= 20) {
+          xoverDrag.isDragging = true;
+          xoverDrag.target = 'hp';
+        } else if (Math.abs(pos.x - lpx) <= 20) {
+          xoverDrag.isDragging = true;
+          xoverDrag.target = 'lp';
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        const cvs = document.getElementById('xover-canvas');
+        if (!cvs) return;
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = gState.outs[activeChIdx];
+        if (!ch || !ch.xover) return;
+
+        if (xoverDrag.isDragging && xoverDrag.target) {
+          const f = posToFreq(pos.x, pos.w);
+          ch.xover[xoverDrag.target].f = f;
+          if (!ch.xover[xoverDrag.target].on) {
+            ch.xover[xoverDrag.target].on = true;
+            if (ch.xover[xoverDrag.target].type === 0) ch.xover[xoverDrag.target].type = 1;
+          }
+          drawXoverCurve();
+          updateXoverControls();
+          throttledSetPath(`outs.${activeChIdx}.xover.${xoverDrag.target}.f`, f);
+        } else {
+          const hpx = freqToPos(ch.xover.hp.f, pos.w);
+          const lpx = freqToPos(ch.xover.lp.f, pos.w);
+          const hit = (Math.abs(pos.x - hpx) <= 20) ? 'hp' : (Math.abs(pos.x - lpx) <= 20) ? 'lp' : null;
+          if (hit !== xoverHoverTarget) {
+            xoverHoverTarget = hit;
+            cvs.style.cursor = hit ? 'col-resize' : 'crosshair';
+          }
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        if (xoverDrag.isDragging && xoverDrag.target) {
+          const ch = gState.outs[activeChIdx];
+          setPath(`outs.${activeChIdx}.xover.${xoverDrag.target}.f`, ch.xover[xoverDrag.target].f);
+          xoverDrag.isDragging = false;
+          xoverDrag.target = null;
+          drawXoverCurve();
+        }
+      });
+
+      cvs.addEventListener('touchstart', (e) => {
+        const pos = getCanvasEventPos(cvs, e);
+        const ch = gState.outs[activeChIdx];
+        if (!ch || !ch.xover) return;
+        const hpx = freqToPos(ch.xover.hp.f, pos.w);
+        const lpx = freqToPos(ch.xover.lp.f, pos.w);
+
+        if (Math.abs(pos.x - hpx) <= 24) {
+          if (e.cancelable) e.preventDefault();
+          xoverDrag.isDragging = true;
+          xoverDrag.target = 'hp';
+        } else if (Math.abs(pos.x - lpx) <= 24) {
+          if (e.cancelable) e.preventDefault();
+          xoverDrag.isDragging = true;
+          xoverDrag.target = 'lp';
+        }
+      }, { passive: false });
+
+      window.addEventListener('touchmove', (e) => {
+        if (xoverDrag.isDragging && xoverDrag.target) {
+          if (e.cancelable) e.preventDefault();
+          const cvs = document.getElementById('xover-canvas');
+          if (!cvs) return;
+          const pos = getCanvasEventPos(cvs, e);
+          const ch = gState.outs[activeChIdx];
+          const f = posToFreq(pos.x, pos.w);
+          ch.xover[xoverDrag.target].f = f;
+          if (!ch.xover[xoverDrag.target].on) {
+            ch.xover[xoverDrag.target].on = true;
+            if (ch.xover[xoverDrag.target].type === 0) ch.xover[xoverDrag.target].type = 1;
+          }
+          drawXoverCurve();
+          updateXoverControls();
+          throttledSetPath(`outs.${activeChIdx}.xover.${xoverDrag.target}.f`, f);
+        }
+      }, { passive: false });
+
+      window.addEventListener('touchend', () => {
+        if (xoverDrag.isDragging && xoverDrag.target) {
+          const ch = gState.outs[activeChIdx];
+          setPath(`outs.${activeChIdx}.xover.${xoverDrag.target}.f`, ch.xover[xoverDrag.target].f);
+          xoverDrag.isDragging = false;
+          xoverDrag.target = null;
+          drawXoverCurve();
+        }
+      });
+    }
+
+    function onXoverLogSlider(sec, val) {
+      const f = logSliderToFreq(val);
+      const ch = gState.outs[activeChIdx];
+      ch.xover[sec].f = f;
+      if (!ch.xover[sec].on) {
+        ch.xover[sec].on = true;
+        if (ch.xover[sec].type === 0) ch.xover[sec].type = 1;
+      }
+      drawXoverCurve();
+      updateXoverControls();
+      throttledSetPath(`outs.${activeChIdx}.xover.${sec}.f`, f);
+    }
+
+    function stepXoverFreq(sec, delta) {
+      const ch = gState.outs[activeChIdx];
+      const f = Math.max(20, Math.min(20000, ch.xover[sec].f + delta));
+      ch.xover[sec].f = f;
+      drawXoverCurve();
+      updateXoverControls();
+      setPath(`outs.${activeChIdx}.xover.${sec}.f`, f);
+    }
+
+    function selectXoverSlope(sec, type) {
+      const ch = gState.outs[activeChIdx];
+      type = parseInt(type);
+      ch.xover[sec].type = type;
+      ch.xover[sec].on = (type > 0);
+      let slope = 0;
+      if (type === 1 || type === 4) slope = 12;
+      else if (type === 2) slope = 18;
+      else if (type === 3 || type === 5) slope = 24;
+      ch.xover[sec].slope = slope;
+
+      drawXoverCurve();
+      updateXoverControls();
+      setPath(`outs.${activeChIdx}.xover.${sec}.type`, type);
+      setPath(`outs.${activeChIdx}.xover.${sec}.slope`, slope);
+      setPath(`outs.${activeChIdx}.xover.${sec}.on`, type > 0 ? 1 : 0);
+    }
+
+    function toggleXoverHp(on) {
+      const ch = gState.outs[activeChIdx];
+      ch.xover.hp.on = on;
+      if (on && ch.xover.hp.type === 0) ch.xover.hp.type = 1;
+      else if (!on) ch.xover.hp.type = 0;
+      drawXoverCurve();
+      updateXoverControls();
+      setPath(`outs.${activeChIdx}.xover.hp.on`, on ? 1 : 0);
+      setPath(`outs.${activeChIdx}.xover.hp.type`, ch.xover.hp.type);
+    }
+
+    function toggleXoverLp(on) {
+      const ch = gState.outs[activeChIdx];
+      ch.xover.lp.on = on;
+      if (on && ch.xover.lp.type === 0) ch.xover.lp.type = 1;
+      else if (!on) ch.xover.lp.type = 0;
+      drawXoverCurve();
+      updateXoverControls();
+      setPath(`outs.${activeChIdx}.xover.lp.on`, on ? 1 : 0);
+      setPath(`outs.${activeChIdx}.xover.lp.type`, ch.xover.lp.type);
+    }
+
+    function updateXoverControls() {
+      const ch = gState.outs[activeChIdx];
+      if (!ch || !ch.xover) return;
+
+      const hpfVal = document.getElementById('xover-hp-f-val');
+      const hpfSl = document.getElementById('xover-hp-f-sl');
+      const hpfTog = document.getElementById('xover-hp-toggle');
+      const hpfSt = document.getElementById('xover-hp-state');
+
+      if (hpfVal) hpfVal.textContent = `${ch.xover.hp.f} Hz`;
+      if (hpfSl && document.activeElement !== hpfSl) hpfSl.value = freqToLogSlider(ch.xover.hp.f);
+      if (hpfTog) hpfTog.checked = ch.xover.hp.on;
+      if (hpfSt) hpfSt.textContent = ch.xover.hp.on ? 'ON' : 'OFF';
+
+      const lpfVal = document.getElementById('xover-lp-f-val');
+      const lpfSl = document.getElementById('xover-lp-f-sl');
+      const lpfTog = document.getElementById('xover-lp-toggle');
+      const lpfSt = document.getElementById('xover-lp-state');
+
+      if (lpfVal) lpfVal.textContent = `${ch.xover.lp.f} Hz`;
+      if (lpfSl && document.activeElement !== lpfSl) lpfSl.value = freqToLogSlider(ch.xover.lp.f);
+      if (lpfTog) lpfTog.checked = ch.xover.lp.on;
+      if (lpfSt) lpfSt.textContent = ch.xover.lp.on ? 'ON' : 'OFF';
+
+      // HUD
+      const hudHpf = document.getElementById('hud-hpf-val');
+      const hudLpf = document.getElementById('hud-lpf-val');
+      if (hudHpf) hudHpf.textContent = ch.xover.hp.on ? `${ch.xover.hp.f} Hz [${FT_NAMES[ch.xover.hp.type]}]` : 'OFF';
+      if (hudLpf) hudLpf.textContent = ch.xover.lp.on ? `${ch.xover.lp.f} Hz [${FT_NAMES[ch.xover.lp.type]}]` : 'OFF';
+    }
+
+    // ==========================================
+    // DETAIL GAIN, DELAY, & DYNAMICS SLIDER HANDLERS
+    // ==========================================
+    function onDetailGainSlider(val) {
+      const v = parseFloat(val);
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      ch.gain = v;
+      document.getElementById('detail-gain-val').textContent = `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+      throttledSetPath(`${activeChType}s.${activeChIdx}.gain`, v);
+    }
+
+    function stepDetailGain(delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      let v = Math.round((ch.gain + delta) * 10) / 10;
+      v = Math.max(-60, Math.min(12, v));
+      ch.gain = v;
+      const sl = document.getElementById('detail-gain-sl');
+      if (sl) sl.value = v;
+      document.getElementById('detail-gain-val').textContent = `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+      setPath(`${activeChType}s.${activeChIdx}.gain`, v);
+    }
+
+    function onDetailDelaySlider(val) {
+      const v = parseFloat(val);
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      ch.delay = v;
+      document.getElementById('detail-delay-val').textContent = `${v.toFixed(1)} ms`;
+      document.getElementById('detail-delay-dist').textContent = `${(v * 0.343).toFixed(2)} m / ${(v * 1.1253).toFixed(2)} ft`;
+      throttledSetPath(`${activeChType}s.${activeChIdx}.delay`, v);
+    }
+
+    function stepDetailDelay(delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      let v = Math.round((ch.delay + delta) * 10) / 10;
+      v = Math.max(0, Math.min(300, v));
+      ch.delay = v;
+      const sl = document.getElementById('detail-delay-sl');
+      if (sl) sl.value = v;
+      document.getElementById('detail-delay-val').textContent = `${v.toFixed(1)} ms`;
+      document.getElementById('detail-delay-dist').textContent = `${(v * 0.343).toFixed(2)} m / ${(v * 1.1253).toFixed(2)} ft`;
+      setPath(`${activeChType}s.${activeChIdx}.delay`, v);
+    }
+
+    function onGateParamSlider(param, val) {
+      const v = parseFloat(val);
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      ch.gate[param] = v;
+      const valEl = document.getElementById(`gate-${param}-val`);
+      if (valEl) valEl.textContent = `${v} dB`;
+      throttledSetPath(`${activeChType}s.${activeChIdx}.gate.${param}`, v);
+    }
+
+    function stepGateParam(param, delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      let v = Math.round(ch.gate[param] + delta);
+      v = Math.max(-80, Math.min(0, v));
+      ch.gate[param] = v;
+      const sl = document.getElementById(`gate-${param}-sl`);
+      if (sl) sl.value = v;
+      const valEl = document.getElementById(`gate-${param}-val`);
+      if (valEl) valEl.textContent = `${v} dB`;
+      setPath(`${activeChType}s.${activeChIdx}.gate.${param}`, v);
+    }
+
+    function onLimParamSlider(param, val) {
+      const v = parseFloat(val);
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      ch.lim[param] = v;
+      const valEl = document.getElementById(`lim-${param}-val`);
+      if (valEl) valEl.textContent = `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+      throttledSetPath(`${activeChType}s.${activeChIdx}.lim.${param}`, v);
+    }
+
+    function stepLimParam(param, delta) {
+      const ch = activeChType === 'in' ? gState.ins[activeChIdx] : gState.outs[activeChIdx];
+      let v = Math.round((ch.lim[param] + delta) * 10) / 10;
+      v = Math.max(-40, Math.min(12, v));
+      ch.lim[param] = v;
+      const sl = document.getElementById(`lim-${param}-sl`);
+      if (sl) sl.value = v;
+      const valEl = document.getElementById(`lim-${param}-val`);
+      if (valEl) valEl.textContent = `${v >= 0 ? '+' : ''}${v.toFixed(1)} dB`;
+      setPath(`${activeChType}s.${activeChIdx}.lim.${param}`, v);
     }
   </script>
 </body>

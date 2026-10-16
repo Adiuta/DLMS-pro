@@ -40,8 +40,8 @@ extern esp_err_t audio_write_dac2(const int32_t *buf, size_t bytes,
 /* dlms_ws.c — add this prototype to dlms_ws.h */
 extern size_t dlms_ws_client_count(void);
 
-/* 1 = cetak waktu proses DSP ke Serial tiap 1 detik (untuk cek beban CPU) */
-#define DSP_LOAD_LOG 1
+/* 0 = produksi (jangan log beban CPU ke UART untuk hindari stall audio) */
+#define DSP_LOAD_LOG 0
 
 /* TES: 1 = paksa semua output full-range tanpa crossover:
  *      OUT1/OUT3 = IN1, OUT2/OUT4 = IN2 (stereo lurus lewat DSP).
@@ -172,9 +172,9 @@ static void update_input_coeffs(dsp_ch_ctx_t *ctx, peq_list_t *pl,
     dsp_gate_setup(&ctx->gate, ch->gate.thr, ch->gate.depth, ch->gate.hold,
                    ch->gate.attack, ch->gate.release, fs);
 
-  if (ch->limiter.on)
-    dsp_limiter_setup(&ctx->limiter, ch->limiter.thr, ch->limiter.ratio, ch->limiter.knee,
-                      ch->limiter.attack, ch->limiter.release, fs);
+  /* Always setup limiter coefficients so they are ready when toggled on */
+  dsp_limiter_setup(&ctx->limiter, ch->limiter.thr, ch->limiter.ratio, ch->limiter.knee,
+                    ch->limiter.attack, ch->limiter.release, fs);
 
   dsp_delay_set(&ctx->delay, ch->delay_ms, fs);
 }
@@ -223,9 +223,9 @@ static void update_output_coeffs(dsp_ch_ctx_t *ctx, peq_list_t *pl,
     dsp_gate_setup(&ctx->gate, ch->gate.thr, ch->gate.depth, ch->gate.hold,
                    ch->gate.attack, ch->gate.release, fs);
 
-  if (ch->limiter.on)
-    dsp_limiter_setup(&ctx->limiter, ch->limiter.thr, ch->limiter.ratio, ch->limiter.knee,
-                      ch->limiter.attack, ch->limiter.release, fs);
+  /* Always setup limiter coefficients so they are ready when toggled on */
+  dsp_limiter_setup(&ctx->limiter, ch->limiter.thr, ch->limiter.ratio, ch->limiter.knee,
+                    ch->limiter.attack, ch->limiter.release, fs);
 
   dsp_delay_set(&ctx->delay, ch->delay_ms, fs);
 }
@@ -606,8 +606,12 @@ static void dsp_task(void *arg) {
       const bool gate_on = p->gate.on;
       const bool lim_on = p->limiter.on;
       const bool has_delay = ctx->delay.len != 0;
-      const float g =
+      static float s_in_smooth_g[DLMS_CHANNELS_IN] = {1.0f, 1.0f};
+      const float target_g =
           p->mute ? 0.0f : in_gain_lin[ch] * (p->invert ? -1.0f : 1.0f);
+      float g_start = s_in_smooth_g[ch];
+      float g_step = (target_g - g_start) / (float)frames;
+      float cur_g = g_start;
       float *dst = s_proc_in[ch];
       float peak = 0;
       float min_gr_lin = 1.0f;
@@ -627,12 +631,17 @@ static void dsp_task(void *arg) {
           x = dsp_delay_tick(&ctx->delay, x);
         if (gate_on)
           x = dsp_gate_tick(&ctx->gate, x);
+
+        cur_g += g_step;
+        x *= cur_g;
+
         if (lim_on)
           x = dsp_limiter_tick(&ctx->limiter, x);
-
-        x *= g;
         
-        if (!isfinite(x)) x = 0;
+        if (!isfinite(x)) {
+          x = 0.0f;
+          dsp_ch_ctx_reset_states(ctx);
+        }
         
         dst[f] = x;
         float ax = fabsf(x);
@@ -641,6 +650,7 @@ static void dsp_task(void *arg) {
         if (lim_on && ctx->limiter.gain_lin < min_gr_lin)
             min_gr_lin = ctx->limiter.gain_lin;
       }
+      s_in_smooth_g[ch] = target_g;
       in_peak_post_lin[ch] = peak;
       
       float gr_db = -lin_to_db(min_gr_lin);
@@ -660,13 +670,20 @@ static void dsp_task(void *arg) {
       const dlms_channel_t *p = &local_out[o];
       const peq_list_t *pl = &s_out_peq[o];
       const bool use1 = p->src_in1, use2 = p->src_in2;
-      const float g1 = sg1_lin[o], g2 = sg2_lin[o];
+      /* When summing both L and R into one output (mono sum), scale by -6 dB (0.5) to maintain unity */
+      const float mix_scale = (use1 && use2) ? 0.5f : 1.0f;
+      const float g1 = sg1_lin[o] * mix_scale, g2 = sg2_lin[o] * mix_scale;
       const uint8_t hp_n = ctx->xover_hp_n, lp_n = ctx->xover_lp_n;
       const bool gate_on = p->gate.on;
       const bool lim_on = p->limiter.on;
       const bool has_delay = ctx->delay.len != 0;
       const float gain = out_gain_lin[o];
       const bool mute = p->mute, invert = p->invert;
+      static float s_out_smooth_g[DLMS_CHANNELS_OUT] = {1.0f, 1.0f, 1.0f, 1.0f};
+      const float target_out_g = mute ? 0.0f : gain * (invert ? -1.0f : 1.0f);
+      float g_start = s_out_smooth_g[o];
+      float g_step = (target_out_g - g_start) / (float)frames;
+      float cur_g = g_start;
       float *dst = s_proc_out[o];
       float peak = 0;
       float peak_pre = 0;
@@ -694,18 +711,18 @@ static void dsp_task(void *arg) {
           y = dsp_delay_tick(&ctx->delay, y);
         if (gate_on)
           y = dsp_gate_tick(&ctx->gate, y);
+
+        cur_g += g_step;
+        y *= cur_g;
+
         if (lim_on)
           y = dsp_limiter_tick(&ctx->limiter, y);
 
-        y *= gain;
-        if (mute)
-          y = 0;
-        if (invert)
-          y = -y;
-
-        /* NaN/Inf guard: casting NaN to int32 is undefined behaviour */
-        if (!isfinite(y))
-          y = 0;
+        /* NaN/Inf guard: reset state and zero output to prevent permanent poison */
+        if (!isfinite(y)) {
+          y = 0.0f;
+          dsp_ch_ctx_reset_states(ctx);
+        }
         y = clampf(y, -0.999f, 0.999f);
 
         dst[f] = y;
@@ -716,6 +733,7 @@ static void dsp_task(void *arg) {
         if (lim_on && ctx->limiter.gain_lin < min_gr_lin)
             min_gr_lin = ctx->limiter.gain_lin;
       }
+      s_out_smooth_g[o] = target_out_g;
       out_peak_lin[o] = peak;
       out_peak_pre_lin[o] = peak_pre;
       
@@ -723,6 +741,8 @@ static void dsp_task(void *arg) {
       if (gr_db < 0) gr_db = 0;
       g_dlms.out_gr[o] = gr_db;
     }
+
+
 
     /* Soft-mute: ramp linear 5 ms, lalu tahan sunyi beberapa blok setelah
      * permintaan dilepas supaya data RX yang rusak akibat stall terbuang. */

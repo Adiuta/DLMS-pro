@@ -84,9 +84,22 @@ size_t dlms_ws_client_count(void) {
   return n;
 }
 
+static SemaphoreHandle_t s_ws_send_mutex = NULL;
+
+static void ensure_ws_send_mutex(void) {
+  if (!s_ws_send_mutex) {
+    s_ws_send_mutex = xSemaphoreCreateMutex();
+  }
+}
+
 static esp_err_t ws_send_text(int fd, const char *text) {
   if (!s_server || !text)
     return ESP_ERR_INVALID_ARG;
+
+  ensure_ws_send_mutex();
+  if (xSemaphoreTake(s_ws_send_mutex, pdMS_TO_TICKS(100)) != pdTRUE) {
+    return ESP_ERR_TIMEOUT;
+  }
 
   httpd_ws_frame_t frame = {
       .final = true,
@@ -95,7 +108,12 @@ static esp_err_t ws_send_text(int fd, const char *text) {
       .payload = (uint8_t *)text,
       .len = strlen(text),
   };
-  return httpd_ws_send_frame_async(s_server, fd, &frame);
+  esp_err_t err = httpd_ws_send_frame_async(s_server, fd, &frame);
+  xSemaphoreGive(s_ws_send_mutex);
+  if (err != ESP_OK) {
+    ws_remove_client(fd);
+  }
+  return err;
 }
 
 /* Send to every live client. Dead sockets are dropped here; before, the fd
@@ -193,7 +211,7 @@ static esp_err_t ws_handler(httpd_req_t *req) {
             dlms_ws_broadcast_change(path->valuestring, v);
             mark_ui_dirty();
             if (strcmp(path->valuestring, "system.brightness") == 0) {
-              analogWrite(PIN_TFT_BL, g_dlms.brightness);
+              analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
               storage_save_system();
             } else if (strncmp(path->valuestring, "system.", 7) == 0) {
               storage_save_system();
@@ -223,25 +241,54 @@ static esp_err_t ws_handler(httpd_req_t *req) {
         if (cJSON_IsNumber(src) && cJSON_IsNumber(dst)) {
           int s = (int)src->valuedouble;
           int d = (int)dst->valuedouble;
-          xSemaphoreTake(g_state_mutex, portMAX_DELAY);
-          if (s < 2 && d < 2) {
+          // Validasi ketat batas 0..5 dan grup yang sama (Item 4)
+          if (s >= 0 && s < 2 && d >= 0 && d < 2) {
+            xSemaphoreTake(g_state_mutex, portMAX_DELAY);
             char tmp[20]; strncpy(tmp, g_dlms.in[d].name, sizeof(tmp));
+            bool d_mute = g_dlms.in[d].mute;
+            bool d_inv = g_dlms.in[d].invert;
+            float d_del = g_dlms.in[d].delay_ms;
+
             g_dlms.in[d] = g_dlms.in[s];
             strncpy(g_dlms.in[d].name, tmp, sizeof(g_dlms.in[d].name));
-          } else if (s >= 2 && d >= 2) {
+            g_dlms.in[d].mute = d_mute;
+            g_dlms.in[d].invert = d_inv;
+            g_dlms.in[d].delay_ms = d_del;
+            xSemaphoreGive(g_state_mutex);
+            storage_save_audio_state();
+            dlms_ws_broadcast_state();
+            mark_ui_dirty();
+          } else if (s >= 2 && s < 6 && d >= 2 && d < 6) {
             int so = s - 2, do_ch = d - 2;
+            xSemaphoreTake(g_state_mutex, portMAX_DELAY);
             char tmp[20]; strncpy(tmp, g_dlms.out[do_ch].name, sizeof(tmp));
+            // Pertahankan rute, mute, invert, delay channel tujuan (Item 19)
+            bool r_in1 = g_dlms.out[do_ch].src_in1;
+            bool r_in2 = g_dlms.out[do_ch].src_in2;
+            float r_gain1 = g_dlms.out[do_ch].src_gain1;
+            float r_gain2 = g_dlms.out[do_ch].src_gain2;
+            bool d_mute = g_dlms.out[do_ch].mute;
+            bool d_inv = g_dlms.out[do_ch].invert;
+            float d_del = g_dlms.out[do_ch].delay_ms;
+
             g_dlms.out[do_ch] = g_dlms.out[so];
             strncpy(g_dlms.out[do_ch].name, tmp, sizeof(g_dlms.out[do_ch].name));
+            g_dlms.out[do_ch].src_in1 = r_in1;
+            g_dlms.out[do_ch].src_in2 = r_in2;
+            g_dlms.out[do_ch].src_gain1 = r_gain1;
+            g_dlms.out[do_ch].src_gain2 = r_gain2;
+            g_dlms.out[do_ch].mute = d_mute;
+            g_dlms.out[do_ch].invert = d_inv;
+            g_dlms.out[do_ch].delay_ms = d_del;
+            xSemaphoreGive(g_state_mutex);
+            storage_save_audio_state();
+            dlms_ws_broadcast_state();
+            mark_ui_dirty();
           }
-          xSemaphoreGive(g_state_mutex);
-          storage_save_audio_state();
-          dlms_ws_broadcast_state();
-          mark_ui_dirty();
         }
       } else if (cJSON_IsString(type) && strcmp(type->valuestring, "reset") == 0) {
         xSemaphoreTake(g_state_mutex, portMAX_DELAY);
-        dlms_state_init();
+        dlms_state_reset_audio();
         xSemaphoreGive(g_state_mutex);
         storage_save_audio_state();
         dlms_ws_broadcast_state();

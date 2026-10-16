@@ -39,6 +39,11 @@ void storage_load(void) {
   if (nvs_get_str(h, "wifi_pw", pw, &n) == ESP_OK && pw[0])
     snprintf(g_dlms.wifi_password, sizeof(g_dlms.wifi_password), "%s", pw);
 
+  char ssid[33] = {0};
+  n = sizeof(ssid);
+  if (nvs_get_str(h, "sta_ssid", ssid, &n) == ESP_OK)
+    snprintf(g_dlms.sta_ssid, sizeof(g_dlms.sta_ssid), "%s", ssid);
+
   nvs_close(h);
 }
 
@@ -49,7 +54,7 @@ void storage_load(void) {
  * while saving is possible. */
 void storage_save_system(void) {
   uint8_t bright, wifi_on, wifi_mode, lcd_to;
-  char pw[33];
+  char pw[33], sta_ssid[33];
 
   xSemaphoreTake(g_state_mutex, portMAX_DELAY);
   bright = g_dlms.brightness;
@@ -57,6 +62,7 @@ void storage_save_system(void) {
   wifi_on = g_dlms.wifi_on ? 1 : 0;
   wifi_mode = (uint8_t)g_dlms.wifi_mode;
   snprintf(pw, sizeof(pw), "%s", g_dlms.wifi_password);
+  snprintf(sta_ssid, sizeof(sta_ssid), "%s", g_dlms.sta_ssid);
   xSemaphoreGive(g_state_mutex);
 
   nvs_handle_t h;
@@ -72,6 +78,8 @@ void storage_save_system(void) {
     e = nvs_set_u8(h, "wifi_mode", wifi_mode);
   if (e == ESP_OK)
     e = nvs_set_str(h, "wifi_pw", pw);
+  if (e == ESP_OK)
+    e = nvs_set_str(h, "sta_ssid", sta_ssid);
   if (e == ESP_OK)
     e = nvs_set_u8(h, "lcd_to", lcd_to);
   if (e == ESP_OK)

@@ -16,6 +16,7 @@
 #include "freertos/task.h"
 
 #include "nvs_flash.h"
+#include "esp_timer.h"
 #include "wifi_web.h"
 #include <math.h>
 #include <stdio.h>
@@ -160,7 +161,8 @@ cJSON *api_config_build_json(void) {
   cJSON_AddBoolToObject(root, "wifiOn", st->wifi_on);
   cJSON_AddStringToObject(root, "wifiMode",
                           st->wifi_mode == RACK_LCD_WIFI_AP ? "AP" : "CLIENT");
-  cJSON_AddStringToObject(root, "wifiPassword", st->wifi_password);
+  cJSON_AddStringToObject(root, "wifiPassword", "********");
+  cJSON_AddStringToObject(root, "staSsid", st->sta_ssid);
 
   cJSON *ins = cJSON_CreateArray();
   for (int i = 0; i < 2; i++)
@@ -258,12 +260,25 @@ static bool get_snapped(const cJSON *o, const char *k, const int *tab, int n,
 static const int k_slopes[] = {6, 12, 18, 24, 36, 48};
 static const int k_taps[] = {128, 256, 512, 1024};
 
+static bool is_hf_channel(const dlms_channel_t *c) {
+  if (!c) return false;
+  return (strstr(c->name, "HF") != NULL ||
+          strstr(c->name, "TW") != NULL ||
+          strstr(c->name, "HIGH") != NULL ||
+          strstr(c->name, "Tweet") != NULL ||
+          strstr(c->name, "tweet") != NULL);
+}
+
 static void apply_xover_sec(bool *on, float *f, uint8_t *type, uint8_t *slope,
-                            const cJSON *sec) {
+                            const cJSON *sec, bool is_hf_protected) {
   int t;
-  get_b(sec, "on", on);
   get_f(sec, "f", f, 20, 20000);
-  get_u8(sec, "type", type, 0, 2);
+  get_u8(sec, "type", type, 0, 5); /* Rentang 0..5 (FT_COUNT - 1): OFF, BW12, BW18, BW24, LR12, LR24 */
+  if (is_hf_protected) {
+    if (*type == 0) *type = 1; /* Proteksi Tweeter: BW12 minimum */
+    if (*f < 1000.0f) *f = 1000.0f;
+  }
+  *on = (*type != 0);
   if (get_snapped(sec, "slope", k_slopes, 6, &t))
     *slope = (uint8_t)t;
 }
@@ -322,14 +337,15 @@ static void json_apply_channel(dlms_channel_t *c, const cJSON *o, bool input) {
 
     v = cJSON_GetObjectItem(o, "xover");
     if (v) {
+      bool is_hf = is_hf_channel(c);
       const cJSON *sec = cJSON_GetObjectItem(v, "hp");
       if (sec)
         apply_xover_sec(&c->xover.hp.on, &c->xover.hp.f, &c->xover.hp.type,
-                        &c->xover.hp.slope, sec);
+                        &c->xover.hp.slope, sec, is_hf);
       sec = cJSON_GetObjectItem(v, "lp");
       if (sec)
         apply_xover_sec(&c->xover.lp.on, &c->xover.lp.f, &c->xover.lp.type,
-                        &c->xover.lp.slope, sec);
+                        &c->xover.lp.slope, sec, false);
     }
     v = cJSON_GetObjectItem(o, "fir");
     if (v) {
@@ -416,11 +432,25 @@ static esp_err_t api_put(httpd_req_t *req) {
     }
   }
 
+  v = cJSON_GetObjectItem(root, "staSsid");
+  if (cJSON_IsString(v)) {
+    if (strcmp(v->valuestring, g_dlms.sta_ssid) != 0) {
+      snprintf(g_dlms.sta_ssid, sizeof(g_dlms.sta_ssid), "%s", v->valuestring);
+      system_changed = wifi_changed = true;
+    }
+  }
+
   v = cJSON_GetObjectItem(root, "wifiPassword");
-  if (cJSON_IsString(v) && strcmp(v->valuestring, g_dlms.wifi_password) != 0) {
-    snprintf(g_dlms.wifi_password, sizeof(g_dlms.wifi_password), "%s",
-             v->valuestring);
-    system_changed = wifi_changed = true;
+  if (cJSON_IsString(v) && v->valuestring[0] && strcmp(v->valuestring, "********") != 0) {
+    if (strlen(v->valuestring) >= 8) {
+      if (strcmp(v->valuestring, g_dlms.wifi_password) != 0) {
+        snprintf(g_dlms.wifi_password, sizeof(g_dlms.wifi_password), "%s",
+                 v->valuestring);
+        system_changed = wifi_changed = true;
+      }
+    } else {
+      ESP_LOGW("wifi_web", "PUT wifiPassword rejected: length < 8 chars");
+    }
   }
 
   v = cJSON_GetObjectItem(root, "ins");
@@ -479,6 +509,7 @@ static esp_err_t api_root(httpd_req_t *req) {
   if (len && index_html_start[len - 1] == 0)
     len--; /* EMBED_TXTFILES appends a NUL */
   httpd_resp_set_type(req, "text/html");
+  httpd_resp_set_hdr(req, "Cache-Control", "no-store, no-cache, must-revalidate");
   return httpd_resp_send(req, (const char *)index_html_start, len);
 }
 
@@ -521,10 +552,21 @@ static void wifi_event(void *arg, esp_event_base_t base, int32_t id,
     case WIFI_EVENT_STA_START:
       esp_wifi_connect();
       break;
-    case WIFI_EVENT_STA_DISCONNECTED:
-      if (g_dlms.wifi_on && g_dlms.wifi_mode == RACK_LCD_WIFI_CLIENT)
-        esp_wifi_connect();
+    case WIFI_EVENT_STA_DISCONNECTED: {
+      static uint32_t s_last_reconnect_ms = 0;
+      static uint32_t s_reconnect_delay_ms = 1000;
+      uint32_t now = (uint32_t)(esp_timer_get_time() / 1000ULL);
+      if (g_dlms.wifi_on && g_dlms.wifi_mode == RACK_LCD_WIFI_CLIENT) {
+        if (now - s_last_reconnect_ms >= s_reconnect_delay_ms) {
+          s_last_reconnect_ms = now;
+          s_reconnect_delay_ms = (s_reconnect_delay_ms < 10000) ? (s_reconnect_delay_ms * 2) : 10000;
+          esp_wifi_connect();
+        }
+      } else {
+        s_reconnect_delay_ms = 1000;
+      }
       break;
+    }
     case WIFI_EVENT_AP_START:
       update_ip_strings();
       if (!s_server)
@@ -544,9 +586,21 @@ static void wifi_event(void *arg, esp_event_base_t base, int32_t id,
 
 static void wifi_configure(bool on, uint8_t mode,
                            const char *password) {
-  esp_wifi_stop();
-  if (!on)
+  if (!on) {
+    /* Set mode NULL while driver is still running — this tells the radio
+       to stop broadcasting the AP SSID immediately.  Only then stop. */
+    esp_wifi_set_mode(WIFI_MODE_NULL);
+    vTaskDelay(pdMS_TO_TICKS(100));   /* let the radio state change complete */
+    esp_wifi_stop();
+    xSemaphoreTake(g_state_mutex, portMAX_DELAY);
+    g_dlms.ip[0] = '\0';
+    g_dlms.ap_ip[0] = '\0';
+    xSemaphoreGive(g_state_mutex);
+    ESP_LOGI("wifi_web", "Wi-Fi radio OFF — SSID removed");
     return;
+  }
+
+  esp_wifi_stop();   /* stop before reconfiguring */
 
   wifi_config_t cfg = {0};
 
@@ -557,15 +611,17 @@ static void wifi_configure(bool on, uint8_t mode,
     cfg.ap.channel = 1;
     cfg.ap.max_connection = 4;
     cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
-    if (strlen(password) < 8)
-      cfg.ap.authmode = WIFI_AUTH_OPEN; /* WPA2 needs >= 8 */
+    if (strlen(password) < 8) {
+      /* WPA2 butuh >= 8 karakter. JANGAN pernah fallback ke OPEN! Tetap gunakan default aman */
+      ESP_LOGE("wifi_web", "AP password must be >= 8 chars, fallback to default");
+      snprintf((char *)cfg.ap.password, sizeof(cfg.ap.password), "%s", DLMS_WIFI_DEFAULT_PASSWORD);
+    }
     esp_wifi_set_mode(WIFI_MODE_AP);
     esp_wifi_set_config(WIFI_IF_AP, &cfg);
   } else {
-    /* NOTE: there is no setting for the router's SSID. This still joins a
-     * network named DLMS_WIFI_AP_SSID; add a stored STA SSID + UI/API. */
+    const char *target_ssid = (g_dlms.sta_ssid[0] != '\0') ? g_dlms.sta_ssid : DLMS_WIFI_AP_SSID;
     snprintf((char *)cfg.sta.ssid, sizeof(cfg.sta.ssid), "%s",
-             DLMS_WIFI_AP_SSID);
+             target_ssid);
     snprintf((char *)cfg.sta.password, sizeof(cfg.sta.password), "%s",
              password);
     esp_wifi_set_mode(WIFI_MODE_STA);
@@ -586,8 +642,10 @@ void wifi_apply_from_lcd(bool on, uint8_t mode,
   snprintf(g_dlms.wifi_password, sizeof(g_dlms.wifi_password), "%s",
            password ? password : "");
   xSemaphoreGive(g_state_mutex);
-
-  wifi_configure(on, mode, password ? password : "");
+  if (!s_wifi_reapply_pending) {
+    s_wifi_reapply_pending = true;
+    xTaskCreatePinnedToCore(wifi_reapply_task, "wifi_apply", 4096, NULL, 4, NULL, 1);
+  }
 }
 
 /* Make the AP really answer on DLMS_WIFI_AP_IP. The default AP netif is

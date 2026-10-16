@@ -84,19 +84,60 @@ static float xoverDb(const dlms_channel_t &c, float f) {
   return db;
 }
 static float peqDb(const dlms_band_t &b, float f) {
-  if (b.g == 0.0f) return 0.0f;
+  if (b.type == 4) return 0.0f; // Allpass has flat 0dB magnitude
+  if (b.g == 0.0f && b.type <= 2) return 0.0f;
   const float fs = 48000.0f;
-  float A = powf(10.0f, b.g / 40.0f);
   float w0 = 2.0f * 3.14159265f * b.f / fs;
-  float alpha = sinf(w0) / (2.0f * b.q);
   float cw = cosf(w0);
-  float b0 = 1 + alpha * A, b1 = -2 * cw, b2 = 1 - alpha * A;
-  float a0 = 1 + alpha / A, a1 = -2 * cw, a2 = 1 - alpha / A;
+  float sw = sinf(w0);
+  float alpha = sw / (2.0f * b.q);
+  float A = powf(10.0f, b.g / 40.0f);
+  float b0 = 1, b1 = 0, b2 = 0, a0 = 1, a1 = 0, a2 = 0;
+
+  switch (b.type) {
+    default:
+    case 0: // BELL
+      b0 = 1.0f + alpha * A; b1 = -2.0f * cw; b2 = 1.0f - alpha * A;
+      a0 = 1.0f + alpha / A; a1 = -2.0f * cw; a2 = 1.0f - alpha / A;
+      break;
+    case 1: { // LOSHELF
+      float sqA = sqrtf(A), t = 2.0f * sqA * alpha;
+      b0 = A * ((A + 1) - (A - 1) * cw + t);
+      b1 = 2.0f * A * ((A - 1) - (A + 1) * cw);
+      b2 = A * ((A + 1) - (A - 1) * cw - t);
+      a0 = (A + 1) + (A - 1) * cw + t;
+      a1 = -2.0f * ((A - 1) + (A + 1) * cw);
+      a2 = (A + 1) + (A - 1) * cw - t;
+      break;
+    }
+    case 2: { // HISHELF
+      float sqA = sqrtf(A), t = 2.0f * sqA * alpha;
+      b0 = A * ((A + 1) + (A - 1) * cw + t);
+      b1 = -2.0f * A * ((A - 1) + (A + 1) * cw);
+      b2 = A * ((A + 1) + (A - 1) * cw - t);
+      a0 = (A + 1) - (A - 1) * cw + t;
+      a1 = 2.0f * ((A - 1) - (A + 1) * cw);
+      a2 = (A + 1) - (A - 1) * cw - t;
+      break;
+    }
+    case 3: // NOTCH
+      b0 = 1.0f; b1 = -2.0f * cw; b2 = 1.0f;
+      a0 = 1.0f + alpha; a1 = -2.0f * cw; a2 = 1.0f - alpha;
+      break;
+    case 5: // LOWPASS
+      b1 = 1.0f - cw; b0 = b1 * 0.5f; b2 = b0;
+      a0 = 1.0f + alpha; a1 = -2.0f * cw; a2 = 1.0f - alpha;
+      break;
+    case 6: // HIGHPASS
+      b1 = -(1.0f + cw); b0 = (1.0f + cw) * 0.5f; b2 = b0;
+      a0 = 1.0f + alpha; a1 = -2.0f * cw; a2 = 1.0f - alpha;
+      break;
+  }
   float w = 2.0f * 3.14159265f * f / fs;
   float c1 = cosf(w), s1 = sinf(w), c2 = cosf(2 * w), s2 = sinf(2 * w);
   float nr = b0 + b1 * c1 + b2 * c2, ni = -(b1 * s1 + b2 * s2);
   float dr = a0 + a1 * c1 + a2 * c2, di = -(a1 * s1 + a2 * s2);
-  return 10.0f * log10f((nr * nr + ni * ni) / (dr * dr + di * di));
+  return 10.0f * log10f((nr * nr + ni * ni) / (dr * dr + di * di + 1e-12f));
 }
 
 #include <TFT_eSPI.h>
@@ -155,6 +196,8 @@ static bool editing = false, dirty = true;
 void set_dirty() { dirty = true; }
 static uint32_t autoSaveAt = 0;
 static bool autoSavePending = false;
+static uint32_t s_last_broadcast_ms = 0;
+static bool s_broadcast_pending = false;
 void schedule_autosave() {
   autoSavePending = true;
   autoSaveAt = millis() + 2500;
@@ -208,6 +251,20 @@ static void fieldBox(int x, int y, int w, int h, bool s, bool edit) {
   box(x, y, w, h, s ? C_ORG : C_LINE, edit ? C_EDIT : C_PANEL, 4);
   if (s)
     spr.drawRoundRect(x + 1, y + 1, w - 2, h - 2, 3, C_ORG);
+}
+
+static void pill(int x, int y, int w, int h, bool on, uint16_t onCol,
+                 const char *txt, bool degree = false) {
+  uint16_t col = on ? onCol : C_GRY;
+  spr.fillRoundRect(x, y, w, h, h / 2, C_BG);
+  spr.drawRoundRect(x, y, w, h, h / 2, col);
+  int cx = x + w / 2, cy = y + h / 2;
+  if (degree) {
+    int tw = spr.textWidth(txt, 1);
+    T(txt, cx - 2, cy, 1, col, MC_DATUM);
+    spr.drawCircle(cx - 2 + tw / 2 + 3, cy - 3, 1, col);
+  } else
+    T(txt, cx, cy, 1, col, MC_DATUM);
 }
 
 static const char *chTag() {
@@ -725,6 +782,13 @@ static void drawLimiter() {
   int s = sel[S_LIM];
   spr.fillSprite(C_BG);
   header(chTag(), "LIMITER");
+
+  // ON/OFF status pill in header
+  pill(118, 2, 38, 11, c.limiter.on, C_RED, c.limiter.on ? "ON" : "OFF");
+  if (s == 0) {
+    spr.drawRoundRect(116, 1, 42, 13, 3, C_ORG);
+  }
+
   static const char *lab[4] = {"THRESH dB", "RATIO", "ATTACK ms", "RELEASE ms"};
   char v[4][12];
   snprintf(v[0], 12, "%.1f", c.limiter.thr);
@@ -736,7 +800,7 @@ static void drawLimiter() {
   snprintf(v[3], 12, "%d", (int)c.limiter.release);
   for (int i = 0; i < 4; i++) {
     int x = (i & 1) ? 82 : 2, y = (i >> 1) ? 53 : 17;
-    bool ss = (s == i);
+    bool ss = (s == i + 1);
     fieldBox(x, y, 76, 35, ss, editing && ss);
     T(lab[i], x + 6, y + 6, 1, C_CYAN, ML_DATUM);
     T(v[i], x + 6, y + 22, 4, ss ? C_ORG : C_WHT, ML_DATUM);
@@ -751,24 +815,10 @@ static void drawLimiter() {
   char g[10];
   snprintf(g, sizeof g, "-%.1f", gr);
   T(g, 156, 104, 2, C_WHT, MR_DATUM);
-  footer(s == 4);
+  footer(s == 5);
 }
 
 // ================= LAYAR: GAIN / MUTE =================
-static void pill(int x, int y, int w, int h, bool on, uint16_t onCol,
-                 const char *txt, bool degree = false) {
-  uint16_t col = on ? onCol : C_GRY;
-  spr.fillRoundRect(x, y, w, h, h / 2, C_BG);
-  spr.drawRoundRect(x, y, w, h, h / 2, col);
-  int cx = x + w / 2, cy = y + h / 2;
-  if (degree) {
-    int tw = spr.textWidth(txt, 1);
-    T(txt, cx - 2, cy, 1, col, MC_DATUM);
-    spr.drawCircle(cx - 2 + tw / 2 + 3, cy - 3, 1, col);
-  } else
-    T(txt, cx, cy, 1, col, MC_DATUM);
-}
-
 static void drawGain() {
   const dlms_channel_t &c = is_input_ch ? g_dlms.in[ch] : g_dlms.out[ch];
   int s = sel[S_GAIN];
@@ -1101,7 +1151,7 @@ static void drawLcd() {
   fieldBox(2, 20, 156, 30, s == 0, editing && s == 0);
   T("BRIGHTNESS", 10, 27, 1, C_CYAN, ML_DATUM);
   char v[12];
-  snprintf(v, sizeof(v), "%d", g_dlms.brightness);
+  snprintf(v, sizeof(v), "%d%%", g_dlms.brightness);
   T(v, 146, 31, 2, s == 0 ? C_ORG : C_WHT, MR_DATUM);
   
   fieldBox(2, 55, 156, 30, s == 1, editing && s == 1);
@@ -1250,12 +1300,28 @@ static void handle(const Input &in) {
       dlms_band_t &pb = c.peq[mi];
       if (s == 0)
         band = wrap(band + (in.raw > 0 ? 1 : -1), nb);
-      else if (s == 1)
+      else if (s == 1) {
         pb.f = stepFreq(pb.f, in.adj(6));
-      else if (s == 2)
+        if (pb.g != 0.0f) { pb.on = true; c.peq_on = true; }
+      }
+      else if (s == 2) {
         pb.g = clampf(pb.g + 0.5f * in.adj(4), -12.0f, 12.0f);
-      else if (s == 3)
+        pb.on = (pb.g != 0.0f);
+        if (pb.on) {
+          c.peq_on = true;
+        } else {
+          bool any_on = false;
+          int total_b = is_input_ch ? DLMS_IN_BANDS : DLMS_OUT_BANDS;
+          for (int i = 0; i < total_b; i++) {
+            if (c.peq[i].on) { any_on = true; break; }
+          }
+          c.peq_on = any_on;
+        }
+      }
+      else if (s == 3) {
         pb.q = stepQ(pb.q, in.adj(4));
+        if (pb.g != 0.0f) { pb.on = true; c.peq_on = true; }
+      }
     }
   } break;
 
@@ -1265,20 +1331,28 @@ static void handle(const Input &in) {
       int s = sel[S_DELAY];
       if (s == 0) {
         // disabled delayUnit
-      } else
+      } else {
+        float max_d = psramFound() ? 300.0f : 20.0f;
         c.delay_ms =
             clampf(roundf((c.delay_ms + 0.1f * in.adj(20)) * 10.0f) / 10.0f,
-                   0.0f, 300.0f);
+                   0.0f, max_d);
+      }
     }
   } break;
 
   case S_LIM: {
     dlms_channel_t &c = is_input_ch ? g_dlms.in[ch] : g_dlms.out[ch];
-    if (nav(S_LIM, 4, in) == N_ADJ) {
+    NavRes nr = nav(S_LIM, 5, in, (1u << 0));
+    if (nr == N_ACT) {
+      if (sel[S_LIM] == 0) {
+        c.limiter.on = !c.limiter.on;
+        dirty = true;
+      }
+    } else if (nr == N_ADJ) {
       int s = sel[S_LIM];
-      if (s == 0)
-        c.limiter.thr = clampf(c.limiter.thr + 0.5f * in.adj(6), -40.0f, 0.0f);
-      else if (s == 1) {
+      if (s == 1) {
+        c.limiter.thr = clampf(c.limiter.thr + 0.5f * in.adj(6), -40.0f, 12.0f);
+      } else if (s == 2) {
         // Step through ratio values
         int ri = 0;
         for (int i = 0; i < NRATIO; i++) {
@@ -1286,9 +1360,9 @@ static void handle(const Input &in) {
         }
         ri = clampi(ri + (in.raw > 0 ? 1 : -1), 0, NRATIO - 1);
         c.limiter.ratio = RATIOS[ri];
-      } else if (s == 2)
+      } else if (s == 3)
         c.limiter.attack = clampi((int)c.limiter.attack + in.adj(5), 1, 200);
-      else if (s == 3)
+      else if (s == 4)
         c.limiter.release = clampi((int)c.limiter.release + 10 * in.adj(5), 10, 2000);
     }
   } break;
@@ -1407,9 +1481,9 @@ static void handle(const Input &in) {
     if (in.click) {
       if (confYes) {
         if (confReset) {
-          // Reset all channels to flat
+          // Reset all channels to flat (audio only, preserve system settings)
           xSemaphoreTake(g_state_mutex, portMAX_DELAY);
-          dlms_state_init();
+          dlms_state_reset_audio();
           xSemaphoreGive(g_state_mutex);
           showToast("RESET OK");
           dlms_ws_broadcast_state();
@@ -1438,8 +1512,8 @@ static void handle(const Input &in) {
     if (nav(S_LCD, 2, in) == N_ADJ) {
       int s = sel[S_LCD];
       if (s == 0) {
-        g_dlms.brightness = clampi(g_dlms.brightness + in.adj(5), 10, 255);
-        analogWrite(PIN_TFT_BL, g_dlms.brightness);
+        g_dlms.brightness = clampi(g_dlms.brightness + in.adj(5), 10, 100);
+        analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
         autoSavePending = true;
         autoSaveAt = millis() + 3000;
       } else if (s == 1) {
@@ -1470,28 +1544,72 @@ static void handle(const Input &in) {
           for (int i = 0; i < 2; i++) {
             if (i != copy_src) {
               char tmp[20]; strcpy(tmp, g_dlms.in[i].name);
+              bool d_mute = g_dlms.in[i].mute;
+              bool d_inv = g_dlms.in[i].invert;
+              float d_del = g_dlms.in[i].delay_ms;
+
               g_dlms.in[i] = g_dlms.in[copy_src];
               strcpy(g_dlms.in[i].name, tmp);
+              g_dlms.in[i].mute = d_mute;
+              g_dlms.in[i].invert = d_inv;
+              g_dlms.in[i].delay_ms = d_del;
             }
           }
         } else {
           char tmp[20]; strcpy(tmp, g_dlms.in[copy_dst].name);
+          bool d_mute = g_dlms.in[copy_dst].mute;
+          bool d_inv = g_dlms.in[copy_dst].invert;
+          float d_del = g_dlms.in[copy_dst].delay_ms;
+
           g_dlms.in[copy_dst] = g_dlms.in[copy_src];
           strcpy(g_dlms.in[copy_dst].name, tmp);
+          g_dlms.in[copy_dst].mute = d_mute;
+          g_dlms.in[copy_dst].invert = d_inv;
+          g_dlms.in[copy_dst].delay_ms = d_del;
         }
       } else {
         if (copy_dst == 4) { // ALL OUT
           for (int i = 0; i < 4; i++) {
             if (i != (copy_src - 2)) {
               char tmp[20]; strcpy(tmp, g_dlms.out[i].name);
+              bool r_in1 = g_dlms.out[i].src_in1;
+              bool r_in2 = g_dlms.out[i].src_in2;
+              float r_gain1 = g_dlms.out[i].src_gain1;
+              float r_gain2 = g_dlms.out[i].src_gain2;
+              bool d_mute = g_dlms.out[i].mute;
+              bool d_inv = g_dlms.out[i].invert;
+              float d_del = g_dlms.out[i].delay_ms;
+
               g_dlms.out[i] = g_dlms.out[copy_src - 2];
               strcpy(g_dlms.out[i].name, tmp);
+              g_dlms.out[i].src_in1 = r_in1;
+              g_dlms.out[i].src_in2 = r_in2;
+              g_dlms.out[i].src_gain1 = r_gain1;
+              g_dlms.out[i].src_gain2 = r_gain2;
+              g_dlms.out[i].mute = d_mute;
+              g_dlms.out[i].invert = d_inv;
+              g_dlms.out[i].delay_ms = d_del;
             }
           }
         } else {
           char tmp[20]; strcpy(tmp, g_dlms.out[copy_dst].name);
+          bool r_in1 = g_dlms.out[copy_dst].src_in1;
+          bool r_in2 = g_dlms.out[copy_dst].src_in2;
+          float r_gain1 = g_dlms.out[copy_dst].src_gain1;
+          float r_gain2 = g_dlms.out[copy_dst].src_gain2;
+          bool d_mute = g_dlms.out[copy_dst].mute;
+          bool d_inv = g_dlms.out[copy_dst].invert;
+          float d_del = g_dlms.out[copy_dst].delay_ms;
+
           g_dlms.out[copy_dst] = g_dlms.out[copy_src - 2];
           strcpy(g_dlms.out[copy_dst].name, tmp);
+          g_dlms.out[copy_dst].src_in1 = r_in1;
+          g_dlms.out[copy_dst].src_in2 = r_in2;
+          g_dlms.out[copy_dst].src_gain1 = r_gain1;
+          g_dlms.out[copy_dst].src_gain2 = r_gain2;
+          g_dlms.out[copy_dst].mute = d_mute;
+          g_dlms.out[copy_dst].invert = d_inv;
+          g_dlms.out[copy_dst].delay_ms = d_del;
         }
       }
       xSemaphoreGive(g_state_mutex);
@@ -1506,10 +1624,17 @@ static void handle(const Input &in) {
     break;
   }
 
-  // Live Sync LCD -> Web: broadcast kapanpun nilai diedit via encoder atau aksi klik
+  // Live Sync LCD -> Web: broadcast kapanpun nilai diedit (throttle >= 100 ms untuk cegah banjir JSON/DOM rebuild)
   if ((editing && in.accel != 0) || (in.click && (scr == S_GAIN || scr == S_GATE || scr == S_XOVER || scr == S_SUBSONIC || scr == S_LIM || scr == S_ROUTE || scr == S_LCD))) {
-    dlms_ws_broadcast_state();
     schedule_autosave();
+    uint32_t now = millis();
+    if (now - s_last_broadcast_ms >= 100) {
+      dlms_ws_broadcast_state();
+      s_last_broadcast_ms = now;
+      s_broadcast_pending = false;
+    } else {
+      s_broadcast_pending = true;
+    }
   }
 }
 
@@ -1517,17 +1642,30 @@ static void handle(const Input &in) {
 static void render() {
   uint32_t now = millis();
   
+  /* Item 7: Pindahkan cek autosave ke awal render() sebelum return dini agar selalu dieksekusi di semua layar */
+  if (autoSavePending && now >= autoSaveAt) {
+    autoSavePending = false;
+    storage_save_audio_state();
+  }
+
+  /* Flush throttled live-sync WS broadcast */
+  if (s_broadcast_pending && (now - s_last_broadcast_ms >= 100)) {
+    s_broadcast_pending = false;
+    s_last_broadcast_ms = now;
+    dlms_ws_broadcast_state();
+  }
+  
   if (g_dlms.lcd_timeout_min > 0) {
     if (!screenOff && (now - lastActivityMs >= g_dlms.lcd_timeout_min * 60000)) {
       screenOff = true;
       analogWrite(PIN_TFT_BL, 0);
     } else if (screenOff && (now - lastActivityMs < g_dlms.lcd_timeout_min * 60000)) {
       screenOff = false;
-      analogWrite(PIN_TFT_BL, g_dlms.brightness);
+      analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
     }
   } else if (screenOff) {
     screenOff = false;
-    analogWrite(PIN_TFT_BL, g_dlms.brightness);
+    analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
   }
 
   if (toastMsg && now >= toastUntil) {
@@ -1596,11 +1734,6 @@ static void render() {
     TB(toastMsg, 80, 64, 2, C_GRN, MC_DATUM);
   }
   
-  if (autoSavePending && now >= autoSaveAt) {
-    autoSavePending = false;
-    storage_save_audio_state();
-  }
-  
   spr.pushSprite(0, 0);
   dirty = false;
   lastDraw = now;
@@ -1617,11 +1750,11 @@ static void begin() {
   tft.setSwapBytes(true);
   tft.pushImage((SCR_W - BOOT_LOGO_W) / 2, (SCR_H - BOOT_LOGO_H) / 2, BOOT_LOGO_W, BOOT_LOGO_H, boot_logo);
   // Logo sudah siap di layar — baru nyalakan backlight
-  analogWrite(PIN_TFT_BL, g_dlms.brightness);
+  analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
   delay(3000);
   tft.fillScreen(TFT_BLACK);
   #else
-  analogWrite(PIN_TFT_BL, g_dlms.brightness);
+  analogWrite(PIN_TFT_BL, dlms_brightness_pwm(g_dlms.brightness));
   #endif
 
   spr.setColorDepth(16);

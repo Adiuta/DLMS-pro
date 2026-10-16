@@ -6,6 +6,7 @@
  */
 #include "dsp_engine.h"
 #include "app_config.h"
+#include "esp_heap_caps.h"
 #include <math.h>
 #include <string.h>
 
@@ -73,6 +74,7 @@ void dsp_ch_ctx_init(dsp_ch_ctx_t *ctx)
         biquad_passthrough(&ctx->xover_hp[i]);
         biquad_passthrough(&ctx->xover_lp[i]);
     }
+    dsp_delay_init(&ctx->delay);
 }
 
 /* ── 1st-order filters (represented as biquad with b2=a2=0) ── */
@@ -305,11 +307,82 @@ void dsp_limiter_setup(dsp_dynamics_t *l, float thr_db, float ratio, float knee_
 }
 
 /* ══════════════════════════════════════════════════════════════
- *  DELAY — setup
+ *  DELAY & STATE RESET — setup
  * ══════════════════════════════════════════════════════════════ */
+void dsp_delay_init(dsp_delay_t *d)
+{
+    if (!d) return;
+    d->len = 0;
+    d->pos = 0;
+    d->max_samp = 0;
+    d->buf = NULL;
+
+    /* Coba alokasi 300 ms (14400 sampel = 57,6 KB) di PSRAM */
+    d->buf = (float *)heap_caps_malloc(DSP_MAX_DELAY_SAMP_PSRAM * sizeof(float), MALLOC_CAP_SPIRAM);
+    if (d->buf) {
+        d->max_samp = DSP_MAX_DELAY_SAMP_PSRAM;
+        memset(d->buf, 0, DSP_MAX_DELAY_SAMP_PSRAM * sizeof(float));
+        return;
+    }
+
+    /* Fallback ke internal RAM jika PSRAM tidak tersedia (960 sampel = 20 ms) */
+    d->buf = (float *)heap_caps_malloc(DSP_MAX_DELAY_SAMP_INTERNAL * sizeof(float), MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (d->buf) {
+        d->max_samp = DSP_MAX_DELAY_SAMP_INTERNAL;
+        memset(d->buf, 0, DSP_MAX_DELAY_SAMP_INTERNAL * sizeof(float));
+    }
+}
+
+void dsp_delay_reset(dsp_delay_t *d)
+{
+    if (d && d->buf && d->max_samp > 0) {
+        memset(d->buf, 0, d->max_samp * sizeof(float));
+        d->pos = 0;
+    }
+}
+
+void dsp_ch_ctx_reset_states(dsp_ch_ctx_t *ctx)
+{
+    if (!ctx) return;
+    ctx->dc_block.x1 = 0;
+    ctx->dc_block.y1 = 0;
+    for (int i = 0; i < DSP_MAX_PEQ_BANDS; i++) {
+        dsp_biquad_reset(&ctx->peq[i]);
+    }
+    for (int i = 0; i < DSP_XOVER_MAX_STAGES; i++) {
+        dsp_biquad_reset(&ctx->xover_hp[i]);
+        dsp_biquad_reset(&ctx->xover_lp[i]);
+    }
+    ctx->gate.env = 0.0f;
+    ctx->gate.gain_lin = 1.0f;
+    ctx->limiter.env = 0.0f;
+    ctx->limiter.gain_lin = 1.0f;
+    dsp_delay_reset(&ctx->delay);
+}
+
 void dsp_delay_set(dsp_delay_t *d, float ms, float fs)
 {
-    uint16_t samp = (uint16_t)(ms * fs * 0.001f);
-    if (samp >= DSP_MAX_DELAY_SAMP) samp = DSP_MAX_DELAY_SAMP - 1;
-    d->len = samp;
+    if (!d || !d->buf || d->max_samp == 0) {
+        if (d) d->len = 0;
+        return;
+    }
+    if (ms <= 0.0f) {
+        d->len = 0;
+        return;
+    }
+    uint32_t samp = (uint32_t)(ms * fs * 0.001f + 0.5f);
+    if (samp >= d->max_samp) samp = d->max_samp - 1;
+
+    uint16_t new_len = (uint16_t)samp;
+    if (new_len > d->len) {
+        /* Bersihkan sampel masa lalu yang baru tercakup agar tidak memutar isi buffer lama (Item 14) */
+        uint16_t diff = new_len - d->len;
+        for (uint16_t i = 1; i <= diff; i++) {
+            int idx = (int)d->pos - (int)d->len - (int)i;
+            while (idx < 0) idx += d->max_samp;
+            if (idx < d->max_samp) d->buf[idx] = 0.0f;
+        }
+    }
+    d->len = new_len;
 }
+
